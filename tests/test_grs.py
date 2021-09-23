@@ -3,7 +3,7 @@ import numpy as np
 from grs import GRS
 
 
-GRS_PATH = '/mnt/store/data/assets/nps-vessel-spills/spatial-division/grs/grs.parquet'
+GRS_PATH = "/mnt/store/data/assets/nps-vessel-spills/spatial-division/grs/grs.parquet"
 
 
 class TestGRS:

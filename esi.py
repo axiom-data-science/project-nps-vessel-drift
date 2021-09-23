@@ -31,7 +31,7 @@ class ESI:
         # Need tree + location lookup because gpd.query only looks over overlapping features
         # - Get (lon, lat) of every point in the geometry column to make a tree
         self.locs = esi_to_locs(self.gdf)
-        self.tree = cKDTree((self.locs.lon, self.locs.lat))
+        self.tree = cKDTree(np.vstack((self.locs.lon.values, self.locs.lat.values)).T)
 
     def get_grs_region_for_each_row(self, grs: GRS) -> np.ndarray:
         """Given GRS data container, return GRS code for each row in ESI data as array"""

@@ -2,6 +2,11 @@
 import datetime
 from pathlib import Path
 
+import rasterio
+import geopandas as gpd
+import numpy as np
+from scipy.spatial.ckdtree import cKDTree
+
 VESSEL_TYPES = [
     'cargoShips',
     'passengerShips',
@@ -10,9 +15,9 @@ VESSEL_TYPES = [
 ]
 
 
-class AIS:
+class AISSet:
     """
-    Interact with AIS rasters used in vessel simulations.
+    Interact with a set of AIS rasters used in vessel simulations.
 
     Arguments:
     ----------
@@ -26,7 +31,7 @@ class AIS:
     Attributes:
     -----------
     ais_paths: list
-        List of paths to each AIS file. 
+        List of paths to each AIS file.
     """
 
     def __init__(self, ais_dir: Path, year: int, vessel_types: list = VESSEL_TYPES):
@@ -60,4 +65,40 @@ class AIS:
 
         for path in self.paths:
             if vessel_type in path.name and file_date in path.name:
-                return path
+                break
+
+        return path
+
+
+class AIS:
+    """
+    Container for AIS raster data.
+    """
+    def __init__(self, path: Path):
+        self.path = path
+        self.vessel_counts = self._load_vessel_counts()
+        locs = np.vstack((
+            self.vessel_counts.lon.values,
+            self.vessel_counts.lat.values
+        )).T
+        self.tree = cKDTree(locs)
+
+    def _load_vessel_counts(self, crs: str = 'epsg:4326') -> gpd.GeoDataFrame:
+        """Load vessel counts and return locations as GeoDataFrame"""
+        with rasterio.open(self.path) as raster:
+            vessel_counts = raster.read(1)
+
+            # get locations where there were vessels (non-zero counts)
+            non_zero_ix = np.argwhere(vessel_counts > 0)
+            lon, lat = raster.xy(non_zero_ix[:, 0], non_zero_ix[:, 1])
+            counts = vessel_counts[non_zero_ix[:, 0], non_zero_ix[:, 1]]
+
+            gdf = gpd.GeoDataFrame(
+                {
+                    'counts': counts,
+                    'lon': lon,
+                    'lat': lat
+                },
+                geometry=gpd.points_from_xy(lon, lat)
+            )
+            return gdf.set_crs(crs)

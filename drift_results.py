@@ -46,17 +46,18 @@ class DriftResult:
 
     def _calc_pt(self, ais: ais.AIS, **kwargs) -> np.ndarray: 
         """Return GeoDataFrame Pt (probability of vessel at release point) for each particle."""
+        # Get starting position of very particle (drifting vessel)
         starting_points = self._get_starting_points(**kwargs)
-        starting_counts = np.zeros(len(starting_points), dtype=int)
+        locs = np.vstack((starting_points.lon.values, starting_points.lat.values)).T
 
-        for ix, row in starting_points.iterrows():
-            # Find starting position in AIS data (get index in vessel_counts)
-            _, ix = ais.tree.query([row.lon, row.lat])
-            starting_counts[ix] = ais.vessel_counts.iloc[ix].counts
+        # Find vessel count in AIS data from starting positing
+        _, ix = ais.tree.query(locs)
+        starting_counts = ais.vessel_counts.iloc[ix].counts.values
 
         # Pt is probability that a vessel is at the release point for the month.
         # - If there were more vessels than days of the month, make Pt = 1
-        pt = starting_counts / calendar.monthrange(ais.date.year, ais.date.month)[1]
+        ndays_in_month = calendar.monthrange(ais.date.year, ais.date.month)[1]
+        pt = starting_counts / ndays_in_month
         pt[pt > 1] = 1
 
         return pt

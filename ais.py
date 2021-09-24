@@ -35,7 +35,7 @@ class AISSet:
     """
 
     def __init__(self, ais_dir: Path, year: int, vessel_types: list = VESSEL_TYPES):
-        self.dir = ais_dir
+        self.dir = Path(ais_dir)
         self.vessel_types = vessel_types
         self.year = year
         self.paths = self._get_ais_paths()
@@ -75,13 +75,21 @@ class AIS:
     Container for AIS raster data.
     """
     def __init__(self, path: Path):
-        self.path = path
+        self.path = Path(path)
+        self.date = self._get_date()
         self.vessel_counts = self._load_vessel_counts()
         locs = np.vstack((
             self.vessel_counts.lon.values,
             self.vessel_counts.lat.values
         )).T
         self.tree = cKDTree(locs)
+
+    def _get_date(self) -> datetime.date:
+        name = self.path.name
+        # Assume name template: "{vessel_type}_{year}{month:02}01-{end_year}{end_month:02}01_total.tif"
+        date = name.split('_')[1].split('-')[0]
+
+        return datetime.datetime.strptime(date, '%Y%m%d')
 
     def _load_vessel_counts(self, crs: str = 'epsg:4326') -> gpd.GeoDataFrame:
         """Load vessel counts and return locations as GeoDataFrame"""

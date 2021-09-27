@@ -2,9 +2,9 @@
 import datetime
 from pathlib import Path
 
-import rasterio
 import geopandas as gpd
 import numpy as np
+import rasterio
 from scipy.spatial.ckdtree import cKDTree
 
 VESSEL_TYPES = [

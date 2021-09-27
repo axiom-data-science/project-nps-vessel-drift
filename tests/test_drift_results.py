@@ -21,14 +21,14 @@ class TestDriftResults:
         assert len(df.lon.values) == NPARTICLES
         assert len(df.lat.values) == NPARTICLES
 
-    def test_pt(self):
-        pt = self.drift_result._calc_pt(self.ais)
+    def test_pt_per_particle(self):
+        pt = self.drift_result._calc_pt_per_particle(self.ais)
         assert len(pt) == NPARTICLES
         assert max(pt) <= 1.0
         assert min(pt) >= 0.0
 
-    def test_esi_ids(self):
-        esi_ids = self.drift_result._get_esi_per_stranded_vessel(self.esi)
+    def test_esi_id_per_particle(self):
+        esi_ids = self.drift_result._get_esi_per_particle(self.esi)
         assert len(esi_ids) == NPARTICLES
         assert np.sum(esi_ids != '') == NSTRANDED
 

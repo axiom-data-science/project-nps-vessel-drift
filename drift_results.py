@@ -1,6 +1,7 @@
 # Container for drift result simulations
 import calendar
 from collections import defaultdict
+from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
@@ -19,10 +20,12 @@ class DriftResult:
     Arguments:
     ----------
     path: Path
-        - Path to result files
+        - Path to result file
     """
-    def __init__(self, path):
+    def __init__(self, path: Path):#, ais_raster: ais.AIS, esi_raster: esi.ESI):
         self.path = path
+#        self.pt_per_particle = self._calc_pt_per_particle(ais_raster)
+#        self.pb_per_esi_segment = self._calc_pb_per_esi_segment(esi_raster)
 
     def _get_starting_points(self, crs: str = 'epsg:4326', convert_lon: bool = True) -> pd.DataFrame:
         """Return starting points for simulation as GeoDataFrame.
@@ -46,7 +49,7 @@ class DriftResult:
         )
         return gdf.set_crs(crs)
 
-    def _calc_pt(self, ais: ais.AIS, **kwargs) -> np.ndarray:
+    def _calc_pt_per_particle(self, ais: ais.AIS, **kwargs) -> np.ndarray:
         """Return Pt_r (probability of vessel at release point r) for each particle."""
         # Get starting position of very particle (drifting vessel)
         starting_points = self._get_starting_points(**kwargs)
@@ -66,7 +69,7 @@ class DriftResult:
 
     def _get_stranded_per_esi_segment(self, esi: esi.ESI, **kwargs) -> defaultdict:
         """Return stranded vessels per ESI segment s."""
-        esi_ids = self._get_esi_per_stranded_vessel(esi, **kwargs)
+        esi_ids = self._get_esi_per_particle(esi, **kwargs)
 
         counts = defaultdict(int)
         for id in esi_ids:
@@ -84,17 +87,17 @@ class DriftResult:
 
         return stranded_counts / total_stranded
 
-    def _get_esi_per_stranded_vessel(
+    def _get_esi_per_particle(
         self,
         esi: esi.ESI,
         dtype: str = 'U15',
         convert_lon: bool = True
     ) -> np.ndarray:
-        """Return ESI segment for every stranded vessel"""
+        """Return ESI segment for every vessel (only a segment ID for vessels that are stranded)."""
         with xr.open_dataset(self.path) as ds:
             stranded_flag = get_stranded_flag(ds)
             nvessels = len(ds.trajectory)
-            esi_ids = np.empty(nvessels, dtype=dtype)
+            esi_id_per_particle = np.empty(nvessels, dtype=dtype)
 
             # Get indices in dataset of where vessels are stranded
             stranded = ds.status.values == stranded_flag
@@ -111,9 +114,9 @@ class DriftResult:
 
         # Find ESI segment id using stranding locations
         _, ix = esi.tree.query(locs)
-        esi_ids[vessel_ix] = esi.locs.iloc[ix].esi_id.values
+        esi_id_per_particle[vessel_ix] = esi.locs.iloc[ix].esi_id.values
 
-        return esi_ids
+        return esi_id_per_particle
 
 
 def get_stranded_flag(ds):

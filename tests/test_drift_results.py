@@ -1,10 +1,12 @@
+import datetime
+
 import numpy as np
-from test_ais import AIS_FILE
-from test_esi import ESI_PATH
 
 import drift_results
 from ais import AIS
 from esi import ESI
+from test_ais import AIS_FILE
+from test_esi import ESI_PATH
 
 SAMPLE_FILE = '/mnt/store/data/assets/nps-vessel-spills/results/50km_100v/alaska_drift_2019-01-17.nc'
 NPARTICLES = 10300
@@ -12,9 +14,9 @@ NSTRANDED = 1886
 
 
 class TestDriftResults:
-    drift_result = drift_results.DriftResult(SAMPLE_FILE)
     ais = AIS(AIS_FILE)
     esi = ESI(ESI_PATH)
+    drift_result = drift_results.DriftResult(SAMPLE_FILE, ais, esi)
 
     def test_starting_points(self):
         df = self.drift_result._get_starting_points()
@@ -34,11 +36,32 @@ class TestDriftResults:
 
     def test_stranded_per_esi_segment(self):
         stranded_per_esi_segment = self.drift_result._get_stranded_per_esi_segment(self.esi)
-        assert min(stranded_per_esi_segment.values()) >= 0
-        assert max(stranded_per_esi_segment.values()) <= NSTRANDED
-        assert sum(stranded_per_esi_segment.values()) == NSTRANDED
+        assert stranded_per_esi_segment.nstranded.min() >= 0
+        assert stranded_per_esi_segment.nstranded.max() <= NSTRANDED
+        assert stranded_per_esi_segment.nstranded.sum() == NSTRANDED
 
     def test_pb_per_segment(self):
         pb_s = self.drift_result._calc_pb_per_esi_segment(self.esi)
-        assert pb_s.min() >= 0.0
-        assert pb_s.max() <= 1.0
+        assert pb_s.pb_s.min() >= 0.0
+        assert pb_s.pb_s.max() <= 1.0
+
+    def test_calc_pb_per_particle(self):
+        pb_per_particle = self.drift_result._calc_pb_per_particle(self.esi)
+        assert len(pb_per_particle) == NPARTICLES
+        assert pb_per_particle.min() >= 0.0
+        assert pb_per_particle.max() <= 1.0
+
+    def test_init(self):
+        assert len(self.drift_result.data) == NPARTICLES
+
+        assert self.drift_result.data.pt.min() >= 0.0
+        assert self.drift_result.data.pt.max() <= 1.0
+
+        assert self.drift_result.data.pb.min() >= 0.0
+        assert self.drift_result.data.pb.max() <= 1.0
+
+        assert self.drift_result.data.stranding_hazard.min() >= 0.0
+        assert self.drift_result.data.stranding_hazard.max() <= 1.0
+
+    def test_sim_start_date(self):
+        assert self.drift_result.start_date == datetime.date(2019, 1, 17)

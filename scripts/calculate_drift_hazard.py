@@ -19,8 +19,9 @@ def calculate_hazard(
 ):
     """Return combined drift result factors for a vessel type from simulation set."""
     results = []
+    breakpoint()
     for vessel_type in vessel_types:
-        results.append(result_set(vessel_type, ais, esi, **kwargs))
+        results.append(result_set.load_results(vessel_type, ais, esi, **kwargs))
 
     return pd.concat(results, ignore_index=True)
 
@@ -46,9 +47,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print('Calculating drift hazard')
-    print('{args.results_dir=}')
-    print('{args.ais_dir=}')
-    print('{args.esi_path=}')
-    print('{args.out_dir=}')
+    print(f'{args.results_dir=}')
+    print(f'{args.ais_dir=}')
+    print(f'{args.esi_path=}')
+    print(f'{args.out_dir=}')
 
     main(args.results_dir, args.ais_dir, args.esi_path, args.out_dir)

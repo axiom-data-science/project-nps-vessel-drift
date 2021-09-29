@@ -1,3 +1,4 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
 VERSION = '0.0.1'
@@ -10,5 +11,5 @@ setup(
     author_email='jesse@axds.co',
     description=DESCRIPTION,
     packages=find_packages(),
-    scripts=['scripts/calculate_drift_hazard.py']
+    scripts=[str(p) for p in Path('scripts').glob('*')],
 )

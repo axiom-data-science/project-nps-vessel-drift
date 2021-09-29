@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import utils
-from ais import AIS
-from esi import ESI
+from . import utils
+from .ais import AIS
+from .esi import ESI
 
 
 class DriftResult:

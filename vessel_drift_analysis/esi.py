@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-from grs import GRS
+from .grs import GRS
 
 
 class ESI:

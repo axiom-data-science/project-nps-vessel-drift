@@ -62,10 +62,9 @@ class AISSet:
         """Given vessel_type and simulation date, return path to AIS raster"""
         # adjust date to match AIS file naming convention
         file_date = f"{self.year}{simulation_date.month:02}01"
-        file_vessel_type = VESSEL_NAME_MAP[vessel_type]
 
         for path in self.paths:
-            if file_vessel_type in path.name and file_date in path.name:
+            if vessel_type in path.name and file_date in path.name:
                 break
 
         return path

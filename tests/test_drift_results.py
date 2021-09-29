@@ -1,20 +1,41 @@
 import datetime
+import os
+import tempfile
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 import drift_results
 from ais import AIS
 from esi import ESI
-from test_ais import AIS_FILE
+from test_ais import AIS_FILE, VESSEL_TYPE
 from test_esi import ESI_PATH
 
-SAMPLE_FILE = '/mnt/store/data/assets/nps-vessel-spills/results/50km_100v/alaska_drift_2019-01-17.nc'
+SAMPLE_DIR = Path('/mnt/store/data/assets/nps-vessel-spills/results/50km_100v/')
+SAMPLE_FILE = SAMPLE_DIR / 'alaska_drift_2019-01-17.nc'
+# Not 52 because we don't have the forcing files to cover the entire year of 2019
+NSAMPLE_FILES = 47
 NPARTICLES = 10300
 NSTRANDED = 1886
 
 
+class TestDriftResultsSet:
+    result_set = drift_results.DriftResultsSet(SAMPLE_DIR)
+    ais = AIS(AIS_FILE, VESSEL_TYPE)
+    esi = ESI(ESI_PATH)
+
+    def test_paths(self):
+        assert len(self.result_set.paths) == NSAMPLE_FILES
+
+    def test_load_results(self):
+        # 'alaska' not an actual vessel type, just use for testing
+        tanker_results = self.result_set.load_results('alaska', self.ais, self.esi)
+        assert tanker_results.date.unique().size == NSAMPLE_FILES
+
+
 class TestDriftResults:
-    ais = AIS(AIS_FILE)
+    ais = AIS(AIS_FILE, VESSEL_TYPE)
     esi = ESI(ESI_PATH)
     drift_result = drift_results.DriftResult(SAMPLE_FILE, ais, esi)
 
@@ -65,3 +86,12 @@ class TestDriftResults:
 
     def test_sim_start_date(self):
         assert self.drift_result.start_date == datetime.date(2019, 1, 17)
+
+    def test_to_parquet(self):
+        try:
+            _, fpath = tempfile.mkstemp(suffix='.parquet')
+            self.drift_result.to_parquet(fpath)
+            read_data = pd.read_parquet(fpath)
+            assert self.drift_result.data.equals(read_data)
+        finally:
+            os.remove(fpath)

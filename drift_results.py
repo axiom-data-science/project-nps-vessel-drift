@@ -33,9 +33,11 @@ class DriftResult:
 
     Attributes
     ----------
-    path: Path Path to simulation result file. start_date: datetime.date Date of the
-        start of the simulation. data: pandas.DataFrame DataFrame of `pt`, `pb`,
-        `stranding_hazard`, `esi_id`, and `region` indexed by particle number.
+    path: Path
+        Path to simulation result file.
+    start_date: datetime.date
+        Date of the start of the simulation.
+    data: pandas.DataFrame DataFrame of `pt`, `pb`, `stranding_hazard`, `esi_id`, and `region` indexed by particle number.
 
     Notes
     -----
@@ -68,11 +70,12 @@ class DriftResult:
     def __init__(self, path: Union[Path, str], ais: AIS, esi: ESI, prob_drift: float = 0.0005, **kwargs):
         self.path = Path(path)
         self.start_date = self._get_sim_starting_date()
+        self.vessel_type = ais.vessel_type
         self.data = self._calc_drift_hazard(ais, esi, prob_drift, **kwargs)
 
     def to_parquet(self, path: Union[Path, str], **kwargs) -> None:
         """Write drift result to parquet file.
-        
+
         Parameters
         ----------
         path: Path
@@ -96,7 +99,7 @@ class DriftResult:
 
     def _calc_drift_hazard(self, ais: AIS, esi: ESI, prob_drift: float, **kwargs) -> pd.DataFrame:
         """Return drift hazard for each particle.
-        
+
         Parameters
         ----------
         ais: AIS
@@ -141,7 +144,7 @@ class DriftResult:
                 'pb': pb,
                 'stranding_hazard': stranding_hazard,
                 'esi_id': esi_per_particle,
-                'region': region_per_particle
+                'region': region_per_particle,
             },
             index=np.arange(len(pt))
         )
@@ -192,7 +195,7 @@ class DriftResult:
         -------
         pt: np.ndarray
             Probability of vessel at release point at start of simulation.
-        """ 
+        """
         # Get starting position of very particle (drifting vessel)
         starting_points = self._get_starting_points(**kwargs)
         locs = np.vstack((starting_points.lon.values, starting_points.lat.values)).T
@@ -244,7 +247,7 @@ class DriftResult:
         -------
         pb: pandas.DataFrame
             Probability of vessel drifting and stranded on coastline indexed by ESI segment.
-        """ 
+        """
         stranded_by_esi = self._get_stranded_per_esi_segment(esi, **kwargs)
         pb_s = stranded_by_esi / stranded_by_esi.sum()
         pb_s.rename(columns={'nstranded': 'pb_s'}, inplace=True)
@@ -293,7 +296,7 @@ class DriftResult:
             Data type of ESI segment IDs. (Default: 'U15')
         convert_lon: bool
             Convert longitude values from 0 to 360 to -180 to 180. (Default: True)
-        
+
         Returns
         -------
         esi_ids: np.ndarray
@@ -324,6 +327,27 @@ class DriftResult:
         return esi_id_per_particle
 
 
+class DriftResultsSet:
+    """Interact with a set of simulation results."""
+
+    def __init__(self, path: Union[str, Path]) -> None:
+        self.dir = Path(path)
+        paths = list(self.dir.glob('*.nc'))
+        self.paths = sorted(paths)
+
+    def load_results(self, vessel_type: str, ais: AIS, esi: ESI) -> pd.DataFrame:
+        """Load all available results."""
+        vessel_specific_paths = [p for p in self.paths if p.name.startswith(vessel_type)]
+        results = []
+        for path in vessel_specific_paths:
+            tmp_results = DriftResult(path, ais, esi)
+            # add date as column to provide ability to group by date
+            tmp_results.data['date'] = tmp_results.data.attrs['start_date']
+            results.append(tmp_results)
+
+        return pd.concat([r.data for r in results], ignore_index=True)
+
+
 def get_stranded_flag(ds: xr.Dataset) -> int:
     """Return flag indicating stranded vessel.
 
@@ -336,7 +360,7 @@ def get_stranded_flag(ds: xr.Dataset) -> int:
     -------
     stranded_flag: int
         Stranded vessel flag.
-    
+
     Notes
     -----
     Stranded vessel flag is the value of the `status` variable in the dataset and

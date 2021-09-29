@@ -8,10 +8,10 @@ import rasterio
 from scipy.spatial.ckdtree import cKDTree
 
 VESSEL_TYPES = [
-    'cargoShips',
-    'passengerShips',
-    'otherShips',
-    'tankerShips'
+    'cargo',
+    'passenger',
+    'other',
+    'tanker'
 ]
 
 
@@ -62,9 +62,10 @@ class AISSet:
         """Given vessel_type and simulation date, return path to AIS raster"""
         # adjust date to match AIS file naming convention
         file_date = f"{self.year}{simulation_date.month:02}01"
+        file_vessel_type = VESSEL_NAME_MAP[vessel_type]
 
         for path in self.paths:
-            if vessel_type in path.name and file_date in path.name:
+            if file_vessel_type in path.name and file_date in path.name:
                 break
 
         return path
@@ -74,9 +75,10 @@ class AIS:
     """
     Container for AIS raster data.
     """
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, vessel_type: str):
         self.path = Path(path)
         self.date = self._get_date()
+        self.vessel_type = vessel_type
         self.vessel_counts = self._load_vessel_counts()
         locs = np.vstack((
             self.vessel_counts.lon.values,

@@ -1,4 +1,4 @@
-from datetime import date
+import datetime
 
 import numpy as np
 
@@ -7,6 +7,7 @@ from ais import AIS, AISSet
 AIS_PATH = '/mnt/store/data/assets/nps-vessel-spills/ais-data/ais-data-2010-2013/processed/rescaled_25km_sum/wgs84/total/'
 AIS_FILE = '/mnt/store/data/assets/nps-vessel-spills/ais-data/ais-data-2010-2013/processed/rescaled_25km_sum/wgs84/total/tankerShips_20120101-20120201_total.tif'
 YEAR = 2012
+VESSEL_TYPE = 'tanker'
 
 
 class TestAISSet:
@@ -22,14 +23,18 @@ class TestAISSet:
 
     def test_get_path(self):
         # Make sure date of simulation is different than date of AIS file
-        test_date = date(2017, 1, 1)
-        vessel_type = 'tankerShips'
-        path = self.ais_set.get_ais_path(vessel_type, test_date)
+        test_date = datetime.date(2017, 1, 1)
+        path = self.ais_set.get_ais_path(VESSEL_TYPE, test_date)
         assert str(path) == AIS_FILE
 
 
 class TestAIS:
-    ais = AIS(AIS_FILE)
+    ais = AIS(AIS_FILE, VESSEL_TYPE)
+
+    def test_attrs(self):
+        # Make sure attributes are correct
+        assert self.ais.vessel_type == VESSEL_TYPE
+        assert self.ais.date == datetime.datetime(YEAR, 1, 1)
 
     def test_ais_counts(self):
         # 216 pixels in example with vessel count greater than 0

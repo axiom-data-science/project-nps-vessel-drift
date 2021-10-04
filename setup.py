@@ -11,5 +11,5 @@ setup(
     author_email='jesse@axds.co',
     description=DESCRIPTION,
     packages=find_packages(),
-    scripts=[str(p) for p in Path('scripts').glob('*')],
+    scripts=[str(p) for p in Path('scripts').glob('**/*.py')],
 )

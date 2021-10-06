@@ -457,7 +457,7 @@ if __name__ == '__main__':
             '--rescale',
             type=int,
             default=10,
-            help='divisor for rescaling original resolution (e.g. 500 m * rescale)'
+            help='divisor for rescaling original resolution (e.g. new resolution = 500 m * rescale)'
     )
     parser.add_argument(
             '--ais_version',

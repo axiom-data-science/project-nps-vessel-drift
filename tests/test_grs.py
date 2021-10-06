@@ -1,6 +1,6 @@
 import numpy as np
 
-from grs import GRS
+from vessel_drift_analysis.grs import GRS
 
 GRS_PATH = "/mnt/store/data/assets/nps-vessel-spills/spatial-division/grs/grs.parquet"
 

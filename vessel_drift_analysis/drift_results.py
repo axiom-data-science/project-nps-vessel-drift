@@ -37,7 +37,8 @@ class DriftResult:
         Path to simulation result file.
     start_date: datetime.date
         Date of the start of the simulation.
-    data: pandas.DataFrame DataFrame of `pt`, `pb`, `stranding_hazard`, `esi_id`, and `region` indexed by particle number.
+    data: pandas.DataFrame
+        DataFrame of `pt`, `pb`, `stranding_hazard`, `esi_id`, and `region` indexed by particle number.
 
     Notes
     -----
@@ -332,7 +333,12 @@ class DriftResultsSet:
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.dir = Path(path)
-        paths = list(self.dir.glob('*.nc'))
+        if not self.dir.is_dir() and self.dir.suffix == '.nc':
+            paths = [self.dir]
+        elif self.dir.is_dir():
+            paths = list(self.dir.glob('*.nc'))
+        else:
+            raise ValueError(f'{path} is not a directory or a .nc file.')
         self.paths = sorted(paths)
 
     def load_results(self, vessel_type: str, ais: AIS, esi: ESI) -> pd.DataFrame:
@@ -367,6 +373,11 @@ def get_stranded_flag(ds: xr.Dataset) -> int:
     it is not constant between simulations.
     """
     flag_meanings = ds.status.flag_meanings.split(' ')
+
+    flag = -1
     for ix, flag_meaning in enumerate(flag_meanings):
         if flag_meaning == 'stranded':
-            return ix
+            flag = ix
+            break
+
+    return flag

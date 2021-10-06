@@ -1,8 +1,8 @@
 import numpy as np
 
-from esi import ESI
+from vessel_drift_analysis.esi import ESI
 
-ESI_PATH = "/mnt/store/data/assets/nps-vessel-spills/spatial-division/esi/cleaned-geojson/combined-esi.parquet"
+ESI_PATH = "/mnt/store/data/assets/nps-vessel-spills/spatial-division/esi/cleaned-geojson/combined-esi.parquet"  # noqa
 
 
 class TestESI:

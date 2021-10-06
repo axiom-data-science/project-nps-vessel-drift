@@ -1,4 +1,4 @@
-import utils
+from vessel_drift_analysis import utils
 
 
 def test_lon360_to_lon180():

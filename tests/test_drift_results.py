@@ -6,9 +6,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-import drift_results
-from ais import AIS
-from esi import ESI
+from vessel_drift_analysis import drift_results
+from vessel_drift_analysis.ais import AIS
+from vessel_drift_analysis.esi import ESI
+
 from test_ais import AIS_FILE, VESSEL_TYPE
 from test_esi import ESI_PATH
 

@@ -26,7 +26,14 @@ def calculate_hazard(
     return pd.concat(results, ignore_index=True)
 
 
-def main(results_dir: Path, ais_dir: Path, esi_path: Path, out_dir: Path, ais_year=2013, vessel_types=VESSEL_TYPES):
+def main(
+    results_dir: Path,
+    ais_dir: Path,
+    esi_path: Path,
+    out_dir: Path,
+    ais_year=2013,
+    vessel_types=VESSEL_TYPES
+):
     """Calculate drift hazard for all vessel types."""
     result_set = DriftResultsSet(results_dir)
     ais_set = AISSet(ais_dir, ais_year)

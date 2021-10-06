@@ -307,7 +307,12 @@ def reproject_to_epsg4326(input_fname, output_dir, method='gdal'):
     return output_fname
 
 
-def _reproject_to_epsg4326_gdal(input_fname: Path, output_dir: Path, method: str = 'bilinear', res: float = 0.225) -> Path:
+def _reproject_to_epsg4326_gdal(
+    input_fname: Path,
+    output_dir: Path,
+    method: str = 'bilinear',
+    res: float = 0.225
+) -> Path:
     """Reproject input raster to EPSG:4326 using gdal.
 
     Parameters

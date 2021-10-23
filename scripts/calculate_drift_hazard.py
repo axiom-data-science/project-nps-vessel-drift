@@ -9,7 +9,7 @@ from vessel_drift_analysis.ais import AISSet
 from vessel_drift_analysis.drift_results import DriftResultsSet, get_vessel_type
 from vessel_drift_analysis.esi import ESI
 
-logging.basicConfig(format='%(process)d-%(levelname)s-%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(process)d-%(levelname)s-%(message)s ', level=logging.INFO)
 
 
 def calculate_hazard(
@@ -24,7 +24,7 @@ def calculate_hazard(
 
     results = []
     for vessel_type in vessel_types:
-        logging.info(f'- loading results from {vessel_type}')
+        logging.info(f'- Loading results from {vessel_type} vessels')
         results.append(result_set.load_results(vessel_type, ais, esi, **kwargs))
 
     return pd.concat(results, ignore_index=True)

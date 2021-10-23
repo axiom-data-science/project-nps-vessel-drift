@@ -354,6 +354,8 @@ class DriftResultsSet:
             tmp_results = DriftResult(path, ais, esi)
             # add date as column to provide ability to group by date
             tmp_results.data['date'] = tmp_results.data.attrs['start_date']
+            # vessel type is also useful when combining results from multiple vessel types
+            tmp_results.data['vessel_type'] = vessel_type
             results.append(tmp_results)
 
         return pd.concat([r.data for r in results], ignore_index=True)

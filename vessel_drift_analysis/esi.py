@@ -83,7 +83,7 @@ class ESI:
         return f'ESI for {self.path}'
 
 
-def get_npoints(gdf: gpd.GeoDataFrame) -> int:
+def get_esi_npoints(gdf: gpd.GeoDataFrame) -> int:
     """Given exploded ESI, return the number of points in the file.
 
     Notes:
@@ -113,10 +113,9 @@ def esi_to_locs(esi: gpd.GeoDataFrame) -> pd.DataFrame:
 
     Notes:
     - Array is returned needed for look-ups
-    -
     """
     esi_exploded = esi.explode()
-    npoints = get_npoints(esi_exploded)
+    npoints = get_esi_npoints(esi_exploded)
 
     # lon, lat, esilgen_, esilgen_id, esi value, esi row in dataframe
     lons = np.zeros((npoints,), dtype='f4')

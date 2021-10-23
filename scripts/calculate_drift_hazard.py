@@ -9,7 +9,7 @@ from vessel_drift_analysis.ais import AISSet
 from vessel_drift_analysis.drift_results import DriftResultsSet, get_vessel_type
 from vessel_drift_analysis.esi import ESI
 
-logging.basicConfig(format='%(process)d-%(levelname)s-%(message)s')
+logging.basicConfig(format='%(process)d-%(levelname)s-%(message)s', level=logging.INFO)
 
 
 def calculate_hazard(

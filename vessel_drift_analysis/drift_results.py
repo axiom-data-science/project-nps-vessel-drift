@@ -3,7 +3,7 @@ import calendar
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 
 import geopandas as gpd
 import numpy as np
@@ -11,7 +11,7 @@ import pandas as pd
 import xarray as xr
 
 from . import utils
-from .ais import AIS
+from .ais import AIS, AISSet
 from .esi import ESI
 
 
@@ -256,7 +256,7 @@ class DriftResult:
         return pb_s
 
     def _calc_pb_per_particle(self, esi: ESI, **kwargs) -> np.ndarray:
-        """Return `pb` of ESI segment where vessel stranded. 
+        """Return `pb` of ESI segment where vessel stranded.
 
         Parameters
         ----------
@@ -341,17 +341,67 @@ class DriftResultsSet:
             raise ValueError(f'{path} is not a directory or a .nc file.')
         self.paths = sorted(paths)
 
-    def load_results(self, vessel_type: str, ais: AIS, esi: ESI) -> pd.DataFrame:
+    def load_results(self, vessel_type: str, ais_set: AISSet, esi: ESI) -> pd.DataFrame:
         """Load all available results."""
         vessel_specific_paths = [p for p in self.paths if p.name.startswith(vessel_type)]
         results = []
         for path in vessel_specific_paths:
+            # load AIS data used to init this simulation
+            start_date = get_sim_start_date(path)
+            ais_path = ais_set.get_ais_path(vessel_type, start_date)
+            ais = AIS(ais_path)
+
             tmp_results = DriftResult(path, ais, esi)
             # add date as column to provide ability to group by date
             tmp_results.data['date'] = tmp_results.data.attrs['start_date']
             results.append(tmp_results)
 
         return pd.concat([r.data for r in results], ignore_index=True)
+
+
+def get_vessel_type(drift_result_path: Path) -> str:
+    """Given a Path to a drift simulation result, return the vessel type.
+
+    Parameters
+    ----------
+    drift_result_path: Path
+        Path to drift simulation results
+
+    Returns
+    -------
+    vessel_type: str
+        The vessel type
+
+    Notes
+    -----
+    Assumes the output file name template is <vessel-type>_alaska_drift_<%Y-%m-%d>.nc
+    """
+    vessel_type, *_ = drift_result_path.name.split('.')[0].split('_')
+
+    return vessel_type
+
+
+def get_sim_start_date(drift_result_path: Path) -> datetime.date:
+    """Given a Path to a drift simulation result, return the simulation start date.
+
+    Parameters
+    ----------
+    drift_result_path: Path
+        Path to drift simulation results
+
+    Returns
+    -------
+    start_date: datetime.date
+        Start date of simulation
+
+    Notes
+    -----
+    Assumes the output file name template is <vessel-type>_alaska_drift_<%Y-%m-%d>.nc
+    """
+    *_, start_date = drift_result_path.name.split('.')[0].split('_')
+    start_date = datetime.date.fromisoformat(start_date)
+
+    return start_date
 
 
 def get_stranded_flag(ds: xr.Dataset) -> int:

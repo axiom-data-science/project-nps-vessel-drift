@@ -74,16 +74,23 @@ class AIS:
     """
     Container for AIS raster data.
     """
-    def __init__(self, path: Path, vessel_type: str):
+    def __init__(self, path: Path):
         self.path = Path(path)
         self.date = self._get_date()
-        self.vessel_type = vessel_type
+        self.vessel_type = self._get_vessel_type() 
         self.vessel_counts = self._load_vessel_counts()
         locs = np.vstack((
             self.vessel_counts.lon.values,
             self.vessel_counts.lat.values
         )).T
         self.tree = cKDTree(locs)
+
+    def _get_vessel_type(self) -> str:
+        name = self.path.name
+        # Assume name template: "{vessel_type}_{year}{month:02}01-{end_year}{end_month:02}01_total.tif"
+        vessel_type = name.split('_')[0]
+
+        return vessel_type
 
     def _get_date(self) -> datetime.date:
         name = self.path.name

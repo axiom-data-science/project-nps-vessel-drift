@@ -3,7 +3,7 @@ import calendar
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union
 
 import geopandas as gpd
 import numpy as np

@@ -1,8 +1,7 @@
 #!python
 """Extract HYCOM surface u, v files"""
 import os
-import subprocess
-from multiprocessing import Pool, TimeoutError
+from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
 

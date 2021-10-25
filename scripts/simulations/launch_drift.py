@@ -1,52 +1,54 @@
 #!python
-# for every week
-#   for every location in that month where there was a vessel in ais
-#       do vessel drift
-#
-# launch particles:
-#   - assign random scaling 2% - 10% of 10 m
-#   - assign random off set (left / right)
-#   - assign random value left/right 60 deg
+"""Launch vessel drift simulations.
+
+Methodology
+-----------
+For every week with forcing data, simulated vessels are launched from every cell where
+a vessel was present in the AIS data.
+
+The drift angle (up to 60 deg.), windage scaling (2% - 10% of 10 m), and left/right
+direction is randomly assigned per simulated vessel.
+"""
 import datetime
-from dataclasses import dataclass
 import logging
-from pathlib import Path
 import time
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List
-from numpy import random
 
-import rasterio
-from rasterio import warp
 import numpy as np
-
-from opendrift.models.oceandrift import LagrangianArray
+import rasterio
 from opendrift.models.basemodel import OpenDriftSimulation
-from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_global_landmask
-from opendrift.readers import reader_shape
-
+from opendrift.models.oceandrift import LagrangianArray
+from opendrift.readers import (
+    reader_netCDF_CF_generic,
+    reader_shape
+)
+from rasterio import warp
 
 logging.basicConfig(level=logging.WARNING)
 RANGE_LIMIT_RADS = 60 * np.pi / 180
 TIF_DIR = '/mnt/store/data/assets/nps-vessel-spills/ais-data/ais-data-2015-2020/processed_25km/2019/epsg4326'
 
+
 class Vessel(LagrangianArray):
-    """Extend LagrangianArray for use with Alaskan Vessel Drift Project.
-    """
+    """Extend LagrangianArray for use with Alaskan Vessel Drift Project."""
     variables = LagrangianArray.add_variables([
-        ('wind_scale',
-             {
-                 'dtype': np.float32,
-                 'units': '1',
-                 'default': 1
-             }
+        (
+            'wind_scale',
+            {
+                'dtype': np.float32,
+                'units': '1',
+                'default': 1
+            }
         ),
-        ('wind_offset',
-             {
-                 'dtype': np.float32,
-                 'units': '1',
-                 'default': 1
-             }
+        (
+            'wind_offset',
+            {
+                'dtype': np.float32,
+                'units': '1',
+                'default': 1
+            }
         )
     ])
 
@@ -61,7 +63,17 @@ class AlaskaDrift(OpenDriftSimulation):
         'land_binary_mask'
     ]
 
-    def seed_elements(self, lon, lat, radius=0, number=None, time=None, seed=187, range_limit_rads=RANGE_LIMIT_RADS, **kwargs):
+    def seed_elements(
+        self,
+        lon,
+        lat,
+        radius=0,
+        number=None,
+        time=None,
+        seed=187,
+        range_limit_rads=RANGE_LIMIT_RADS,
+        **kwargs
+    ):
         if number is None:
             number = self.get_config('seed:number_of_elements')
 
@@ -71,7 +83,10 @@ class AlaskaDrift(OpenDriftSimulation):
         # b = 0.1
         wind_scale = (0.1 - 0.02) * np.random.random_sample((number,)) + 0.02
         # offset is -60 deg. to 60 deg.
-        wind_offset = (range_limit_rads + range_limit_rads) * np.random.random_sample((number,)) - range_limit_rads
+        # a = -60
+        # b = 60
+        # (60 - (-60)) * random_sample + (-60)
+        wind_offset = (range_limit_rads + range_limit_rads) * np.random.random_sample((number,)) - range_limit_rads # noqa
 
         super(AlaskaDrift, self).seed_elements(
             lon=lon,
@@ -87,8 +102,7 @@ class AlaskaDrift(OpenDriftSimulation):
     def update(self):
 
         # 1. update wind
-        windspeed = np.sqrt(self.environment.x_wind**2 +
-                            self.environment.y_wind**2)
+        windspeed = np.sqrt(self.environment.x_wind**2 + self.environment.y_wind**2)
         windspeed *= self.elements.wind_scale
 
         # update angle using random offset +- 60 deg
@@ -148,7 +162,7 @@ def lonlat_from_tif(date, tif_file, dst_crs=rasterio.crs.CRS.from_epsg(4326)):
 def run_sims_for_date(run_config, tif_dir=TIF_DIR):
     vessel_types = ['cargo', 'other', 'passenger', 'tanker']
 
-    # Run simulation using data for start date for every vessel type 
+    # Run simulation using data for start date for every vessel type
     month = run_config.start_date.month
 
     tif_files = list(Path(tif_dir).glob('*.tif'))
@@ -162,16 +176,22 @@ def run_sims_for_date(run_config, tif_dir=TIF_DIR):
 
         vessel_type = tif_file.name.split('.')[0].split('_')[0]
         # prepend out name with vessel type
-        outfile = vessel_type + '_' + base_fname 
+        outfile = vessel_type + '_' + base_fname
 
         # release points from each ais location where a vessel was in the past
-        lons, lats = lonlat_from_tif(run_config.start_date, tif_file) 
+        lons, lats = lonlat_from_tif(run_config.start_date, tif_file)
 
         # launch vessel simulation
         vessel_sim = AlaskaDrift(loglevel=run_config.loglevel)
         vessel_sim.add_reader(run_config.readers)
         for i in range(run_config.number):
-            vessel_sim.seed_elements(lon=lons, lat=lats, time=run_config.start_date, number=len(lons), radius=run_config.radius)
+            vessel_sim.seed_elements(
+                lon=lons,
+                lat=lats,
+                time=run_config.start_date,
+                number=len(lons),
+                radius=run_config.radius
+            )
         vessel_sim.set_config('general:use_auto_landmask', False)  # Disabling the automatic GSHHG landmask
         vessel_sim.run(
             time_step=run_config.time_step,
@@ -181,12 +201,19 @@ def run_sims_for_date(run_config, tif_dir=TIF_DIR):
         )
 
 
-def run_simulations(days=7, number=50, radius=5000, timestep=900, output_timestep=3600, tif_dir=TIF_DIR, loglevel=logging.INFO):
+def run_simulations(
+    days=7,
+    number=50,
+    radius=5000,
+    timestep=900,
+    output_timestep=3600,
+    tif_dir=TIF_DIR,
+    loglevel=logging.INFO
+):
     # start date possible to launch drifter, limited by availability of HYCOM data
     start_date = datetime.datetime(2019, 1, 17)
     # last date possible to launch drifter, limited by availability of NAM data
     last_date = datetime.datetime(2019, 12, 10)
-    #last_date = datetime.datetime(2019, 1, 18)
     date = start_date
     duration = datetime.timedelta(days=days)
 
@@ -198,16 +225,12 @@ def run_simulations(days=7, number=50, radius=5000, timestep=900, output_timeste
     fname = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/nam/regrid/nam.nc'
     nam_reader = reader_netCDF_CF_generic.Reader(fname)
 
-    # land - cannot use as it is -180, 180
-    # reader_landmask = reader_global_landmask.Reader(
-    #     extent=[150, 45, 240, 75]
-    #)
-    # use the same landmask with lons shifted
-    fname = '/mnt/store/data/assets/nps-vessel-spills/sim-scripts/drift/world_0_360.shp' 
+    # land - cannot use default landmask as it is -180, 180
+    # Instead, we use the same landmask with lons shifted to 0, 360
+    fname = '/mnt/store/data/assets/nps-vessel-spills/sim-scripts/drift/world_0_360.shp'
     reader_landmask = reader_shape.Reader.from_shpfiles(fname)
 
-
-    # order matters.  first reader sets the projection for the simulation.
+    # Reader order matters.  first reader sets the projection for the simulation.
     readers = [hycom_reader, nam_reader, reader_landmask]
 
     sim_start_time = time.perf_counter()
@@ -216,7 +239,17 @@ def run_simulations(days=7, number=50, radius=5000, timestep=900, output_timeste
             logging.info(f'simulation started for {date:%Y-%m-%d}')
             start_time = time.perf_counter()
             output_fname = f'alaska_drift_{date:%Y-%m-%d}.nc'
-            config = SimulationConfig(date, readers, number, radius, timestep, output_timestep, duration, output_fname, loglevel)
+            config = SimulationConfig(
+                date,
+                readers,
+                number,
+                radius,
+                timestep,
+                output_timestep,
+                duration,
+                output_fname,
+                loglevel
+            )
             run_sims_for_date(config, tif_dir)
             end_time = time.perf_counter()
             total_time = int(end_time - start_time)
@@ -266,6 +299,7 @@ def main():
         tif_dir=args.ais,
         loglevel=logging.INFO
     )
+
 
 if __name__ == '__main__':
     main()

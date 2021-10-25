@@ -10,18 +10,16 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import affine
-
-import rasterio
-from rasterio import Affine, MemoryFile
-from rasterio.enums import Resampling
-from rasterio import shutil as rio_shutil
-from rasterio.vrt import WarpedVRT
-from rasterio.warp import calculate_default_transform, reproject
-
 import cartopy
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
+import rasterio
+from rasterio import Affine, MemoryFile
+from rasterio import shutil as rio_shutil
+from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
+from rasterio.warp import calculate_default_transform, reproject
 
 
 @contextmanager
@@ -47,9 +45,9 @@ def resample_raster(raster, out_path=None, scale=2):
     profile.update(transform=transform, driver='GTiff', height=height, width=width)
 
     data = raster.read(
-            out_shape=(raster.count, height, width),
-            resampling=Resampling.bilinear,
-        )
+        out_shape=(raster.count, height, width),
+        resampling=Resampling.bilinear,
+    )
 
     if out_path is None:
         with write_mem_raster(data, **profile) as dataset:
@@ -454,22 +452,22 @@ if __name__ == '__main__':
         help='path to output directory'
     )
     parser.add_argument(
-            '--rescale',
-            type=int,
-            default=10,
-            help='divisor for rescaling original resolution (e.g. new resolution = 500 m * rescale)'
+        '--rescale',
+        type=int,
+        default=10,
+        help='divisor for rescaling original resolution (e.g. new resolution = 500 m * rescale)'
     )
     parser.add_argument(
-            '--ais_version',
-            type=int,
-            default=2,
-            help='ais type (sat [1] or terrestrial [2])'
+        '--ais_version',
+        type=int,
+        default=2,
+        help='ais type (sat [1] or terrestrial [2])'
     )
     parser.add_argument(
-            '--number',
-            type=int,
-            default=None,
-            help='Limit number of tifs processed'
+        '--number',
+        type=int,
+        default=None,
+        help='Limit number of tifs processed'
     )
 
     args = parser.parse_args()
@@ -493,7 +491,7 @@ if __name__ == '__main__':
     logger.info(f'{output_path=}')
     logger.info(f'{rescale=} (rescaling factor)')
     if args.number:
-        logger.info(f'Processing {args.number} files. ({args.number=}') 
+        logger.info(f'Processing {args.number} files. ({args.number=}')
 
     nfiles = len(files)
     for i, file in enumerate(files):

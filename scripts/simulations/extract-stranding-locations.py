@@ -19,7 +19,7 @@ def get_stranded_locations(ds: xr.Dataset) -> np.ndarray:
     return np.vstack([lons, lats]).T
 
 
-def save_stranded_locations(opendrift_file: Path, outdir: Path) -> Path: 
+def save_stranded_locations(opendrift_file: Path, outdir: Path) -> Path:
     """Given path to OpenDrift result file, save stranding locations as csv to outdir."""
     outdir.mkdir(exist_ok=True, parents=True)
     outfile = outdir / opendrift_file.name.replace('.nc', '')

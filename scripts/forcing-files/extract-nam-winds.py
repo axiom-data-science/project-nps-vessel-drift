@@ -1,8 +1,7 @@
 #!python
-"""NAM 10 m winds""" 
+"""NAM 10 m winds"""
 import os
-import subprocess
-from multiprocessing import Pool, TimeoutError
+from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
@@ -51,7 +50,7 @@ def extract_uv_surface_noworkie(basedir=BASEDIR, outdir='./', nworkers=10):
                 nco.ncks,
                 (),
                 {
-                    'input': outfile, 
+                    'input': outfile,
                     'output': outfile,
                     'options': options
                 }
@@ -67,7 +66,7 @@ def extract_uv_surface_noworkie(basedir=BASEDIR, outdir='./', nworkers=10):
                 nco.ncwa,
                 (),
                 {
-                    'input': outfile, 
+                    'input': outfile,
                     'output': outfile,
                     'options': options
                 }
@@ -79,15 +78,6 @@ def _extract(fname, outdir):
     outdir = Path(outdir)
     outfile = outdir / fname.name
 
-# ugh
-#    subproc = subprocess.Popen(
-#        f'ncks -d lat,45.0,75.0 -d lon,160.0,220.0 -d depth,0 -v water_u,water_v {fname} {outfile}',
-#        stdout=subprocess.PIPE,
-#        stderr=subprocess.PIPE,
-#        shell=True
-#    )
-#    stdout, stderr = subproc.communicate()
-#    os.system(f'ncks -d lat,45.0,75.0 -d lon,160.0,220.0 -d depth,0 -v water_u,water_v {fname} {outfile}')
     os.system(f'ncks -4 -O -d height_above_ground4,0 -v wind_u,wind_v {fname} {outfile}')
     os.system(f'ncks -O -C -x -v height_above_ground4 {outfile} {outfile}')
     os.system(f'ncwa -O -a height_above_ground4 {outfile} {outfile}')
@@ -104,8 +94,6 @@ def extract_uv_surface(basedir=BASEDIR, outdir=OUTDIR, nworkers=10):
 
     for file in files:
         print(file)
-#        _extract(file, outdir)
-
         thread_pool.apply_async(_extract, (file, outdir))
 
     thread_pool.close()

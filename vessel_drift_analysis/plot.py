@@ -2,9 +2,9 @@
 from pathlib import Path
 
 import cartopy
-import numpy as np
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
+import numpy as np
 import xarray as xr
 
 from .utils import get_stranded_flag_from_status

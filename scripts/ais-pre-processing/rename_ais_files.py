@@ -1,7 +1,7 @@
 #!python
 # Rename raw AIS files
-from pathlib import Path
 import logging
+from pathlib import Path
 
 
 def rename_file(path: Path) -> None:
@@ -24,8 +24,8 @@ def rename_dir(dir_path: Path) -> None:
         if file.is_file():
             try:
                 rename_file(file)
-            # skip files that don't match expected naming convention
-            except:
+            # skip files that don't match expected naming convention, or other problems
+            except:  # noqa
                 continue
 
 

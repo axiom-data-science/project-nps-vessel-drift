@@ -1,7 +1,11 @@
-from . import ais
-from . import drift_results
-from . import esi
-from . import grs
-from . import plot
-from . import shorezone
-from . import utils
+from . import ais, drift_results, esi, grs, plot, shorezone, utils
+
+__all__ = [
+    'ais',
+    'drift_results',
+    'esi',
+    'grs',
+    'plot',
+    'shorezone',
+    'utils',
+]

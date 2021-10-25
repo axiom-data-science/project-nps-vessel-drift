@@ -77,7 +77,7 @@ class AIS:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.date = self._get_date()
-        self.vessel_type = self._get_vessel_type() 
+        self.vessel_type = self._get_vessel_type()
         self.vessel_counts = self._load_vessel_counts()
         locs = np.vstack((
             self.vessel_counts.lon.values,

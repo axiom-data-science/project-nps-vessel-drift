@@ -56,7 +56,7 @@ def get_grs_npoints(exploded_gdf) -> int:
 
 
 def grs_to_locs(grs_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
-    """Given GRS GeoDataFrame, return DataFrame for each point along GRS boundary with GRS code.""" 
+    """Given GRS GeoDataFrame, return DataFrame for each point along GRS boundary with GRS code."""
     # GRS geometry is comprised of MultiPolygons.  We want to seperate those to Polygons.
     grs_exploded = grs_gdf.explode()
 

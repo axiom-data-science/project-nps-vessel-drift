@@ -128,7 +128,7 @@ def esi_to_locs(esi: gpd.GeoDataFrame) -> pd.DataFrame:
     # Iterate over each row
     # - Extract x, y points from each point in the line
     start_ix = 0
-    for ix, row in esi_exploded.iterrows():            
+    for ix, row in esi_exploded.iterrows():
         # x,y = row[1] and transpose to be (n, 2)
         line_locs = np.array(row.geometry.xy).T
         # number of points in the line

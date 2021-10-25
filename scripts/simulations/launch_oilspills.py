@@ -1,39 +1,37 @@
 #!python
-# for every week
-#   for every location where a vessel ran around 
-#       do oil spill 
-#
-# oil spill simulation: 
-#   - Marine Diesel
-#   - 1000 elements (1 element = 1 gallon) 
-#   - dispersion, evaporation, emulsification = True, vertical_mixing = False
-#   - Release oil instantaneously
+"""Launch vessel drift simulations.
+
+Methodology
+-----------
+For every week with forcing data, simulated oil spills are launched from location where
+a simulated vessel ran aground in the vessel drift simulations.
+
+Oil spills are assumed to be marine diesel oil with each spill consisting of 1000 elements.
+The amount spilled is dependending on the vessel type with values derived from the Washington
+State Department of Ecology and Environment (WSDEE)[1].
+
+The oil spill model ("Adios") is parameterized to use dispersion, evaporation, and emulsification.
+Vertical mixing is turned off for these simulations.  All oil is released instantaneously.
+
+
+References
+----------
+[1] https://www.wsdee.wa.gov/programs/vessel-drift/vessel-drift-data-and-model-parameters
+"""
 import datetime
 import logging
 import time
 from collections import namedtuple
 from dataclasses import dataclass
-from multiprocessing import Pool 
 from pathlib import Path
 from typing import List
 
-from numpy import random
-
 import numpy as np
-import pandas as pd
-import rasterio
-from rasterio import warp
-
-# from vessel drift
-from opendrift.models.oceandrift import LagrangianArray
-from opendrift.models.basemodel import OpenDriftSimulation
-from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_global_landmask
-from opendrift.readers import reader_shape
-
-# for these simulations
 from opendrift.models.openoil import OpenOil
-
+from opendrift.readers import (
+    reader_netCDF_CF_generic,
+    reader_shape
+)
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -53,29 +51,22 @@ class SimulationConfig:
     grounding_dir: Path = Path('/mnt/store/data/assets/nps-vessel-spills/stranding-locations/satellite')
 
 
-@dataclass
-class SpillConfig:
-    """Configuration for oil spill"""
-    # Volume of oil released per hour, or all of amount if release is instantaneous 
-    m3_per_hour: float 
-    oil_type: str = 'MARINE INTERMEDIATE FUEL OIL'
-
 # Values drived from: https://apps.ecology.wa.gov/publications/documents/96250.pdf
 # - Guidance on amount of oil by vessel types, but focused values typical for Puget Sound.
 # - Broadly applicable for this purpose, however.
 # - Worst case scenarios numbers
 SpillConfig = namedtuple('spill_config', ['type', 'amount'])
-gal_to_m3 = 0.003785
-oil_configs = {
-    'tanker': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 5_000_000 * gal_to_m3),
-    'passenger': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 2_000_000 * gal_to_m3),
-    # Assuming this is fishing vessels
-    'other': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 75_000 * gal_to_m3),
-    'cargo': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 2_000_000 * gal_to_m3)
+GAL_TO_M3 = 0.003785
+OIL_CONFIGS = {
+    'cargo': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 2_000_000 * GAL_TO_M3),
+    # The vast majority of "other" are fishing vessels, so we'll just assume that here
+    'other': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 75_000 * GAL_TO_M3),
+    'passenger': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 2_000_000 * GAL_TO_M3),
+    'tanker': SpillConfig('MARINE INTERMEDIATE FUEL OIL', 5_000_000 * GAL_TO_M3)
 }
 
 # vessel types from AIS
-vessel_types = [
+VESSEL_TYPES = [
     'tanker',
     'passenger',
     'other',
@@ -89,7 +80,7 @@ def run_sim(run_config, oil_configs, vessel_type):
     start_time = time.perf_counter()
 
     # load vessel grounding locations for this week
-    grounding_dir = run_config.grounding_dir 
+    grounding_dir = run_config.grounding_dir
     grounding_path = grounding_dir / f'{vessel_type}_alaska_drift_{run_config.start_date:%Y-%m-%d}.npy'
     locs = np.load(grounding_path)
     lons = locs[:, 0]
@@ -120,7 +111,7 @@ def run_sim(run_config, oil_configs, vessel_type):
     oil_sim.set_config('environment:fallback:sea_surface_wave_stokes_drift_x_velocity', 0)
     oil_sim.set_config('environment:fallback:sea_surface_wave_stokes_drift_y_velocity', 0)
     oil_sim.set_config('environment:fallback:sea_surface_wave_period_at_variance_spectral_density_maximum', 0)
-    oil_sim.set_config('environment:fallback:sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment', 0)
+    oil_sim.set_config('environment:fallback:sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment', 0)  # noqa
     oil_sim.set_config('environment:fallback:sea_ice_area_fraction', 0)
     oil_sim.set_config('environment:fallback:sea_ice_x_velocity', 0)
     oil_sim.set_config('environment:fallback:sea_ice_y_velocity', 0)
@@ -151,8 +142,8 @@ def run_simulations(
     radius=1000,
     timestep=900,
     output_timestep=3600,
-    vessel_types=vessel_types,
-    oil_configs=oil_configs,
+    vessel_types=VESSEL_TYPES,
+    oil_configs=OIL_CONFIGS,
     loglevel=logging.INFO
 ):
     if type(vessel_types) is str:
@@ -173,26 +164,31 @@ def run_simulations(
     fname = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/nam/regrid/nam.nc'
     nam_reader = reader_netCDF_CF_generic.Reader(fname)
 
-    # land - cannot use as it is -180, 180
-    # reader_landmask = reader_global_landmask.Reader(
-    #     extent=[150, 45, 240, 75]
-    #)
-    # use the same landmask with lons shifted
-    fname = '/mnt/store/data/assets/nps-vessel-spills/sim-scripts/drift/world_0_360.shp' 
+    # land - cannot use default landmask as it is -180, 180
+    # Instead, we use the same landmask with lons shifted to 0, 360
+    fname = '/mnt/store/data/assets/nps-vessel-spills/sim-scripts/drift/world_0_360.shp'
     reader_landmask = reader_shape.Reader.from_shpfiles(fname)
 
-
-    # order matters.  first reader sets the projection for the simulation.
+    # Reader order matters.  first reader sets the projection for the simulation.
     readers = [hycom_reader, nam_reader, reader_landmask]
 
     sim_start_time = time.perf_counter()
-    futures = []
     while date <= last_date:
         for vessel_type in vessel_types:
             try:
                 logging.info(f'launching simulation for {vessel_type} starting on {date:%Y-%m-%d}')
                 output_fname = f'oilspill_{vessel_type}_{date:%Y-%m-%d}.nc'
-                config = SimulationConfig(date, readers, number, radius, timestep, output_timestep, duration, output_fname, loglevel)
+                config = SimulationConfig(
+                    date,
+                    readers,
+                    number,
+                    radius,
+                    timestep,
+                    output_timestep,
+                    duration,
+                    output_fname,
+                    loglevel
+                )
                 run_sim(config, oil_configs, vessel_type)
 
             except Exception as e:
@@ -238,6 +234,7 @@ def main():
         vessel_types=args.vessel_type,
         loglevel=logging.INFO
     )
+
 
 if __name__ == '__main__':
     main()

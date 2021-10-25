@@ -5,9 +5,8 @@ from typing import List, Tuple
 
 import numpy as np
 import pyproj
-from pyproj import Transformer
 import xarray as xr
-
+from pyproj import Transformer
 
 NAM_PROJ = pyproj.crs.CRS.from_proj4('+proj=stere +lat_0=90 +lon_0=210 +k_0=0.9330127018922193 +R=6371229.0')
 

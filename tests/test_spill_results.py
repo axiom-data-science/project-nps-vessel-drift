@@ -60,6 +60,9 @@ class TestSpillResults:
 
         assert self.spill_result.data.particle_hits.min() >= 0.0
 
+        assert self.spill_result.data.pb.min() >= 0.0
+        assert self.spill_result.data.pb.max() <= 1.0
+
         assert self.spill_result.data.cs.min() >= 0.0
         assert self.spill_result.data.cs.max() <= 1.0
 

@@ -103,7 +103,7 @@ def shorezone_to_locs(shorezone: gpd.GeoDataFrame) -> pd.DataFrame:
 
     Notes:
     ------
-    DataFrame is needed as a lookup table for Shorezone classificaiton when doing nearest-neighbor lookups.
+    DataFrame is needed as a lookup table for Shorezone classification when doing nearest-neighbor lookups.
     """
     shorezone_exploded = shorezone.explode()
     npoints = get_shorezone_npoints(shorezone_exploded)

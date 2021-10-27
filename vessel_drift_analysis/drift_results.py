@@ -3,7 +3,7 @@ import calendar
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from typing import Union
+from typing import Union, DefaultDict
 
 import geopandas as gpd
 import numpy as np
@@ -13,6 +13,7 @@ import xarray as xr
 from . import utils
 from .ais import AIS, AISSet
 from .esi import ESI
+from .shorezone import ShoreZone
 
 
 class DriftResult:
@@ -68,11 +69,19 @@ class DriftResult:
     Management,Volume 159, 2015, Pages 158-168, ISSN 0301-4797,
     https://doi.org/10.1016/j.jenvman.2015.04.044.
     """
-    def __init__(self, path: Union[Path, str], ais: AIS, esi: ESI, prob_drift: float = 0.0005, **kwargs):
+    def __init__(
+        self,
+        path: Union[Path, str],
+        ais: AIS,
+        esi: ESI,
+        shorezone: ShoreZone,
+        prob_drift: float = 0.0005,
+        **kwargs
+    ):
         self.path = Path(path)
         self.start_date = self._get_sim_starting_date()
         self.vessel_type = ais.vessel_type
-        self.data = self._calc_drift_hazard(ais, esi, prob_drift, **kwargs)
+        self.data = self._calc_drift_hazard(ais, esi, shorezone, prob_drift, **kwargs)
 
     def to_parquet(self, path: Union[Path, str], **kwargs) -> None:
         """Write drift result to parquet file.
@@ -98,7 +107,14 @@ class DriftResult:
 
         return date
 
-    def _calc_drift_hazard(self, ais: AIS, esi: ESI, prob_drift: float, **kwargs) -> pd.DataFrame:
+    def _calc_drift_hazard(
+        self,
+        ais: AIS,
+        esi: ESI,
+        shorezone: ShoreZone,
+        prob_drift: float,
+        **kwargs
+    ) -> pd.DataFrame:
         """Return drift hazard for each particle.
 
         Parameters
@@ -107,6 +123,8 @@ class DriftResult:
             AIS data container object.
         esi: ESI
             ESI data container object.
+        shorezone: ShoreZone
+            Shorezone data container object.
         prob_drift: float
             Probability of vessel drifting.
 
@@ -131,19 +149,23 @@ class DriftResult:
 
         # ESI IDs are <region>-<segment #>, so we break the region out for convenience
         # - loop to deal with non-stranding ESI IDs
-        region_per_particle = []
+        region_per_particle: list[Union[str, None]] = []
         for particle_esi_id in esi_per_particle:
             if particle_esi_id is None:
                 region_per_particle.append(None)
             else:
                 region_per_particle.append(particle_esi_id.split('-')[0])
 
-        # Return all factors and stranding risk in single DataFrame
+        # Add probability that vessel will breach based on Shorezone data about coastline
+        breach_prob = self._calc_breach_prob_per_particle(shorezone)
+
+        # Return all factors, stranding risk, and breaching probability in a single DataFrame
         df = pd.DataFrame(
             {
                 'pt': pt,
                 'pb': pb,
                 'stranding_hazard': stranding_hazard,
+                'breach_prob': breach_prob,
                 'esi_id': esi_per_particle,
                 'region': region_per_particle,
             },
@@ -183,6 +205,44 @@ class DriftResult:
             geometry=gpd.points_from_xy(df.lon, df.lat)
         )
         return gdf.set_crs(crs)
+
+    def _calc_breach_prob_per_particle(
+        self,
+        shorezone: ShoreZone,
+        convert_lon: bool = True,
+    ) -> np.ndarray:
+        """Return probability of a vessel breaching and spilling oil based on coastline data.
+
+        Parameters
+        ----------
+        shorezone: ShoreZone
+            Shorezone data container object.
+
+        Returns
+        -------
+        breach_prob: np.ndarray
+            Probability of breaching and spilling oil for each particle / vessel.
+        """
+        with xr.open_dataset(self.path) as ds:
+            stranded_flag = utils.get_stranded_flag_from_status(ds)
+            nvessels = len(ds.trajectory)
+            breach_prob_per_particle = np.zeros((nvessels,))
+
+            # Get indices in dataset of where vessels are stranded
+            stranded = ds.status.values == stranded_flag
+            stranded_ix = np.argwhere(stranded)
+            vessel_ix = stranded_ix[:, 0]
+            time_ix = stranded_ix[:, 1]
+
+            # Get stranding locations from dataset using indices
+            lons = ds.lon.values[vessel_ix, time_ix]
+            if convert_lon:
+                lons = utils.lon360_to_lon180(lons)
+            lats = ds.lat.values[vessel_ix, time_ix]
+            locs = np.vstack((lons, lats)).T
+        breach_prob_per_particle[vessel_ix] = shorezone.get_breach_prob(locs)
+
+        return breach_prob_per_particle
 
     def _calc_pt_per_particle(self, ais: AIS, **kwargs) -> np.ndarray:
         """Return probability of vessel at release point at start of simulation (`pt`).
@@ -228,7 +288,7 @@ class DriftResult:
         """
         esi_ids = self._get_esi_per_particle(esi, **kwargs)
 
-        counts = defaultdict(int)
+        counts: DefaultDict[str, int] = defaultdict(int)
         for id in esi_ids:
             if id == '':
                 continue
@@ -341,7 +401,13 @@ class DriftResultsSet:
             raise ValueError(f'{path} is not a directory or a .nc file.')
         self.paths = sorted(paths)
 
-    def load_results(self, vessel_type: str, ais_set: AISSet, esi: ESI) -> pd.DataFrame:
+    def load_results(
+        self,
+        vessel_type: str,
+        ais_set: AISSet,
+        esi: ESI,
+        shorezone: ShoreZone
+    ) -> pd.DataFrame:
         """Load all available results."""
         vessel_specific_paths = [p for p in self.paths if p.name.startswith(vessel_type)]
         results = []
@@ -351,7 +417,7 @@ class DriftResultsSet:
             ais_path = ais_set.get_ais_path(vessel_type, start_date)
             ais = AIS(ais_path)
 
-            tmp_results = DriftResult(path, ais, esi)
+            tmp_results = DriftResult(path, ais, esi, shorezone)
             # add date as column to provide ability to group by date
             tmp_results.data['date'] = tmp_results.data.attrs['start_date']
             # vessel type is also useful when combining results from multiple vessel types

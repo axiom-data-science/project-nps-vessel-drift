@@ -9,9 +9,11 @@ import pandas as pd
 from vessel_drift_analysis import drift_results
 from vessel_drift_analysis.ais import AIS, AISSet
 from vessel_drift_analysis.esi import ESI
+from vessel_drift_analysis.shorezone import ShoreZone
 
 from test_ais import AIS_FILE, AIS_PATH, YEAR
 from test_esi import ESI_PATH
+from test_shorezone import SHOREZONE_PATH
 
 
 SAMPLE_DIR = Path('/mnt/store/data/assets/nps-vessel-spills/sim-results/terrestial-sims/drift-sensitivity-analysis/50km_100v')  # noqa
@@ -21,25 +23,32 @@ NSAMPLE_FILES = 47
 NPARTICLES = 10300
 NSTRANDED = 1886
 
+# Don't want to load these twice
+global_ais = AIS(AIS_FILE)
+global_esi = ESI(ESI_PATH)
+global_shorezone = ShoreZone(SHOREZONE_PATH)
+
 
 class TestDriftResultsSet:
     result_set = drift_results.DriftResultsSet(SAMPLE_DIR)
     ais_set = AISSet(AIS_PATH, YEAR)
-    esi = ESI(ESI_PATH)
+    esi = global_esi
+    shorezone = global_shorezone
 
     def test_paths(self):
         assert len(self.result_set.paths) == NSAMPLE_FILES
 
     def test_load_results(self):
         # 'alaska' not an actual vessel type, just use for testing
-        tanker_results = self.result_set.load_results('alaska', self.ais_set, self.esi)
+        tanker_results = self.result_set.load_results('alaska', self.ais_set, self.esi, self.shorezone)
         assert tanker_results.date.unique().size == NSAMPLE_FILES
 
 
 class TestDriftResults:
-    ais = AIS(AIS_FILE)
-    esi = ESI(ESI_PATH)
-    drift_result = drift_results.DriftResult(SAMPLE_FILE, ais, esi)
+    ais = global_ais
+    esi = global_esi
+    shorezone = global_shorezone
+    drift_result = drift_results.DriftResult(SAMPLE_FILE, ais, esi, shorezone)
 
     def test_starting_points(self):
         df = self.drift_result._get_starting_points()
@@ -74,6 +83,12 @@ class TestDriftResults:
         assert pb_per_particle.min() >= 0.0
         assert pb_per_particle.max() <= 1.0
 
+    def test_calc_breach_prob_per_particle(self):
+        beach_prob_per_particle = self.drift_result._calc_breach_prob_per_particle(self.shorezone)
+        assert len(beach_prob_per_particle) == NPARTICLES
+        assert beach_prob_per_particle.min() >= 0.0
+        assert beach_prob_per_particle.max() <= 1.0
+
     def test_init(self):
         assert len(self.drift_result.data) == NPARTICLES
 
@@ -85,6 +100,9 @@ class TestDriftResults:
 
         assert self.drift_result.data.stranding_hazard.min() >= 0.0
         assert self.drift_result.data.stranding_hazard.max() <= 1.0
+
+        assert self.drift_result.data.breach_prob.min() >= 0.0
+        assert self.drift_result.data.breach_prob.max() <= 1.0
 
     def test_sim_start_date(self):
         assert self.drift_result.start_date == datetime.date(2019, 1, 17)

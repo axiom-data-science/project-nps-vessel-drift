@@ -91,7 +91,7 @@ class SpillResult:
         return date
 
     def _calc_concentration_index(self, esi: ESI, **kwargs) -> pd.DataFrame:
-        """Return concentraiton index per esi segment.
+        """Return concentration index per esi segment.
 
         Parameters
         ----------
@@ -102,6 +102,10 @@ class SpillResult:
         -------
         oil_mass: pandas.DataFrame
             Beached oil mass per esi segment, indexed by ESI segment.
+
+        Notes
+        -----
+        All terms returned are aggregated values over ESI segments.
         """
         oil_mass = self._get_oil_mass_per_particle()
         esi_ids = self._get_esi_per_particle(esi, **kwargs)
@@ -125,17 +129,21 @@ class SpillResult:
         # value found in the domain."
         # Here we are using mass of oil, the concentration  (mass / area?) can be computed later.
         # We really have a length of coastline, not an area.  So, some thought needs to go into
-        # how to appraoch this.
+        # how to approach this.
         oil_mass = np.fromiter(oil_mass_by_esi.values(), dtype=float)
-        particle_count = np.fromiter(particles_by_esi.values(), dtype=int)
-        ensemble_mean_mass = oil_mass / particle_count
-        cs = ensemble_mean_mass / np.nanmax(oil_mass)
+
+        # Pb_s - Probability spill hit each ESI segment
+        particle_count_per_esi = np.fromiter(particles_by_esi.values(), dtype=int)
+        pb = particle_count_per_esi / particle_count_per_esi.sum()
+        ensemble_mean_mass = oil_mass / particle_count_per_esi
+        cs = ensemble_mean_mass / oil_mass.sum()
 
         df = pd.DataFrame(
             {
                 'oil_mass': oil_mass_by_esi.values(),
-                'particle_hits': particles_by_esi.values(),
                 'cs': cs,
+                'pb': pb,
+                'particle_hits': particle_count_per_esi,
                 'region': region_by_esi
             },
             index=oil_mass_by_esi.keys()

@@ -5,14 +5,16 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from test_ais import AIS_FILE, VESSEL_TYPE
-from test_esi import ESI_PATH
 
 from vessel_drift_analysis import drift_results
-from vessel_drift_analysis.ais import AIS
+from vessel_drift_analysis.ais import AIS, AISSet
 from vessel_drift_analysis.esi import ESI
 
-SAMPLE_DIR = Path('/mnt/store/data/assets/nps-vessel-spills/results/50km_100v/')
+from test_ais import AIS_FILE, AIS_PATH, YEAR
+from test_esi import ESI_PATH
+
+
+SAMPLE_DIR = Path('/mnt/store/data/assets/nps-vessel-spills/sim-results/terrestial-sims/drift-sensitivity-analysis/50km_100v')  # noqa
 SAMPLE_FILE = SAMPLE_DIR / 'alaska_drift_2019-01-17.nc'
 # Not 52 because we don't have the forcing files to cover the entire year of 2019
 NSAMPLE_FILES = 47
@@ -22,7 +24,7 @@ NSTRANDED = 1886
 
 class TestDriftResultsSet:
     result_set = drift_results.DriftResultsSet(SAMPLE_DIR)
-    ais = AIS(AIS_FILE, VESSEL_TYPE)
+    ais_set = AISSet(AIS_PATH, YEAR)
     esi = ESI(ESI_PATH)
 
     def test_paths(self):
@@ -30,12 +32,12 @@ class TestDriftResultsSet:
 
     def test_load_results(self):
         # 'alaska' not an actual vessel type, just use for testing
-        tanker_results = self.result_set.load_results('alaska', self.ais, self.esi)
+        tanker_results = self.result_set.load_results('alaska', self.ais_set, self.esi)
         assert tanker_results.date.unique().size == NSAMPLE_FILES
 
 
 class TestDriftResults:
-    ais = AIS(AIS_FILE, VESSEL_TYPE)
+    ais = AIS(AIS_FILE)
     esi = ESI(ESI_PATH)
     drift_result = drift_results.DriftResult(SAMPLE_FILE, ais, esi)
 

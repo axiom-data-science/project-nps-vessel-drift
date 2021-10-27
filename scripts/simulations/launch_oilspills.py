@@ -28,10 +28,7 @@ from typing import List
 
 import numpy as np
 from opendrift.models.openoil import OpenOil
-from opendrift.readers import (
-    reader_netCDF_CF_generic,
-    reader_shape
-)
+from opendrift.readers import reader_netCDF_CF_generic, reader_shape
 
 logging.basicConfig(level=logging.WARNING)
 

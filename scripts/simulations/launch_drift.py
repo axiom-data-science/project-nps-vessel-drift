@@ -20,10 +20,7 @@ import numpy as np
 import rasterio
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.models.oceandrift import LagrangianArray
-from opendrift.readers import (
-    reader_netCDF_CF_generic,
-    reader_shape
-)
+from opendrift.readers import reader_netCDF_CF_generic, reader_shape
 from rasterio import warp
 
 logging.basicConfig(level=logging.WARNING)

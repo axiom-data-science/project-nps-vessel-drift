@@ -304,7 +304,7 @@ class DriftResult:
             ESI segment for each vessel.
         """
         with xr.open_dataset(self.path) as ds:
-            stranded_flag = get_stranded_flag(ds)
+            stranded_flag = utils.get_stranded_flag_from_status(ds)
             nvessels = len(ds.trajectory)
             esi_id_per_particle = np.empty(nvessels, dtype=dtype)
 
@@ -404,32 +404,3 @@ def get_sim_start_date(drift_result_path: Path) -> datetime.date:
     start_date = datetime.date.fromisoformat(start_date)
 
     return start_date
-
-
-def get_stranded_flag(ds: xr.Dataset) -> int:
-    """Return flag indicating stranded vessel.
-
-    Parameters
-    ----------
-    ds: xr.Dataset
-        Dataset containing stranded vessel flag.
-
-    Returns
-    -------
-    stranded_flag: int
-        Stranded vessel flag.
-
-    Notes
-    -----
-    Stranded vessel flag is the value of the `status` variable in the dataset and
-    it is not constant between simulations.
-    """
-    flag_meanings = ds.status.flag_meanings.split(' ')
-
-    flag = -1
-    for ix, flag_meaning in enumerate(flag_meanings):
-        if flag_meaning == 'stranded':
-            flag = ix
-            break
-
-    return flag

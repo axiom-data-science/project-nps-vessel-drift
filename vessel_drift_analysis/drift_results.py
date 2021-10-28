@@ -75,7 +75,7 @@ class DriftResult:
         ais: AIS,
         esi: ESI,
         shorezone: ShoreZone,
-        prob_drift: float = 0.0005,
+        prob_drift: float = 0.0006,
         **kwargs
     ):
         self.path = Path(path)

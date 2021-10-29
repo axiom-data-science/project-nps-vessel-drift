@@ -30,7 +30,8 @@ class SpillResult:
     start_date: datetime.date
         Date of the start of the simulation.
     data: pandas.DataFrame
-        DataFrame of `cs` and `region` indexed by esi segment id.
+        DataFrame of `oil_mass`, `cs`, `pb`, `particle_hits`, `esi_id`, `region`, `date`, and `vessel_type`
+        grouped by, but not indexed, `esi_id`.
 
     Notes
     -----
@@ -128,15 +129,15 @@ class SpillResult:
         # of beached oil at each coastal site normalized by the maximum mean concentration
         # value found in the domain."
         # Here we are using mass of oil, the concentration  (mass / area?) can be computed later.
-        # We really have a length of coastline, not an area.  So, some thought needs to go into
-        # how to approach this.
+        # We really have a length of coastline, not an area...
+        # Will use ESI segment length to normalize this.  It will be mass / length (kg / km).
         oil_mass = np.fromiter(oil_mass_by_esi.values(), dtype=float)
 
         # Pb_s - Probability spill hit each ESI segment
         particle_count_per_esi = np.fromiter(particles_by_esi.values(), dtype=int)
         pb = particle_count_per_esi / particle_count_per_esi.sum()
         ensemble_mean_mass = oil_mass / particle_count_per_esi
-        cs = ensemble_mean_mass / oil_mass.sum()
+        cs = ensemble_mean_mass / oil_mass.max()
 
         df = pd.DataFrame(
             {
@@ -144,9 +145,10 @@ class SpillResult:
                 'cs': cs,
                 'pb': pb,
                 'particle_hits': particle_count_per_esi,
-                'region': region_by_esi
+                'esi_id': oil_mass_by_esi.keys(),
+                'region': region_by_esi.values()
             },
-            index=oil_mass_by_esi.keys()
+            index=np.arange(len(cs))
         )
         df.attrs.update({'start_date': self.start_date})
 

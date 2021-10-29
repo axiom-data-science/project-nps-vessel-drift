@@ -1,13 +1,18 @@
 #!python
 """Convert shp files to geojson, combined, and save as parquet."""
+import logging
 from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
 
+
+logging.basicConfig(format='%(asctime)-15s - %(levelname)s: %(message)s', level=logging.INFO)
+
 RENAME_COLUMNS = {
     'ESILGEN_': 'esi_id',
-    'ESI': 'esi'
+    'ESI': 'esi',
+    'LENGTH': 'length'
 }
 DROP_COLUMNS = [
     'FNODE_',
@@ -19,17 +24,16 @@ DROP_COLUMNS = [
     'MOSTSENSIT',
     'LINE',
     'ESILGEN_ID',
-    'LENGTH'
 ]
 
 base_dir = Path('/mnt/store/data/assets/nps-vessel-spills/spatial-division/esi/esi-shapefiles')
 esil_files = base_dir.glob('*/**/esil.shp')
-out_dir = Path('/mnt/store/data/assets/nps-vessel-spills/spatial-division/esi/cleaned-geojson')
+out_dir = Path('/mnt/store/data/assets/nps-vessel-spills/spatial-division/esi/cleaned-and-combined')
 out_dir.mkdir(exist_ok=True)
 
 
 def get_region(fpath):
-    return str(fpath).split('/')[1].split('_')[0].lower()
+    return str(fpath.parents[2].name).split('_')[0].lower()
 
 
 def convert_and_clean_shapefile(fpath, out_dir=out_dir):
@@ -39,15 +43,24 @@ def convert_and_clean_shapefile(fpath, out_dir=out_dir):
     region_name = get_region(fpath)
     new_esi_id = [f'{region_name}-{id}' for id in df.esi_id]
     df['esi_id'] = new_esi_id
-    df.to_file(f'{region_name}-cleaned.geojson', driver='GeoJSON')
+    out_file = out_dir / f'{region_name}-cleaned.geojson'
+    logging.info(f'Writing {out_file}')
+    df.to_file(out_file, driver='GeoJSON')
 
 
 for fpath in esil_files:
-    print(fpath)
-    convert_and_clean_shapefile(fpath)
+    logging.info(f'Reading {fpath}')
+    convert_and_clean_shapefile(fpath, out_dir)
 
 geojson_files = out_dir.glob('*.geojson')
 dfs = [gpd.read_file(f) for f in geojson_files]
 combined_gdf = gpd.GeoDataFrame(pd.concat(dfs, ignore_index=True))
-combined_gdf.to_file('combined-esi.geojson', driver='GeoJSON')
-combined_gdf.to_parquet('combined-esi.parquet')
+
+logging.info(f'Reading files from {base_dir}')
+
+geojson_file = out_dir / 'combined-esi.geojson'
+logging.info(f'Writing {geojson_file}')
+combined_gdf.to_file(geojson_file, driver='GeoJSON')
+logging.info(f'Writing {geojson_file}')
+parquet_file = out_dir / 'combined-esi.parquet'
+combined_gdf.to_parquet(parquet_file)

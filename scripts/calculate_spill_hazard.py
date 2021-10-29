@@ -8,7 +8,7 @@ import pandas as pd
 from vessel_drift_analysis.esi import ESI
 from vessel_drift_analysis.spill_results import SpillResultsSet, get_vessel_type
 
-logging.basicConfig(format='%(process)d-%(levelname)s-%(mesage)s', level=logging.INFO)
+logging.basicConfig(format='%(process)d - %(levelname)s: %(message)s', level=logging.INFO)
 
 
 def calculate_hazard(
@@ -46,9 +46,9 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Calculate drift hazard')
-    parser.add_argument('results_dir', type=Path, required=True)
-    parser.add_argument('esi_path', type=Path, required=True)
-    parser.add_argument('out_dir', type=Path, required=True)
+    parser.add_argument('results_dir', type=Path)
+    parser.add_argument('esi_path', type=Path)
+    parser.add_argument('out_dir', type=Path)
     args = parser.parse_args()
 
     logging.info('Calculating drift hazard')

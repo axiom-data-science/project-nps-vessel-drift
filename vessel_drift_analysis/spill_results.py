@@ -113,7 +113,7 @@ class SpillResult:
 
         oil_mass_by_esi = defaultdict(float)
         particles_by_esi = defaultdict(int)
-        region_by_esi = defaultdict(str)
+        length_of_esi = defaultdict(str)
         for mass, id in zip(oil_mass, esi_ids):
             if id == '':
                 continue
@@ -121,16 +121,15 @@ class SpillResult:
             oil_mass_by_esi[id] += mass
             # Count all particles that landed in each ESI segment
             particles_by_esi[id] += 1
-            # Get GRS region of each ESI segment
-            region_by_esi[id] = id.split('-')[0]
+            # Add length of ESI segment
+            length_of_esi[id] = esi.gdf[esi.gdf.esi_id == id]
 
         # From Sepp-Neves (2016):
         # "Cs is the concentration index, defined as the ensemble mean concentration
         # of beached oil at each coastal site normalized by the maximum mean concentration
         # value found in the domain."
-        # Here we are using mass of oil, the concentration  (mass / area?) can be computed later.
-        # We really have a length of coastline, not an area...
-        # Will use ESI segment length to normalize this.  It will be mass / length (kg / km).
+        # Here we are using mass of oil and we have a length of coastline, not an area.
+        # So, we will use the ESI segment length in the shape files to normalize this.
         oil_mass = np.fromiter(oil_mass_by_esi.values(), dtype=float)
 
         # Pb_s - Probability spill hit each ESI segment
@@ -139,6 +138,10 @@ class SpillResult:
         ensemble_mean_mass = oil_mass / particle_count_per_esi
         cs = ensemble_mean_mass / oil_mass.max()
 
+        # Noramlize Cs by length of ESI segment
+        length_of_esi = np.fromiter(length_of_esi.values())
+        cs = cs / length_of_esi
+
         df = pd.DataFrame(
             {
                 'oil_mass': oil_mass_by_esi.values(),
@@ -146,7 +149,6 @@ class SpillResult:
                 'pb': pb,
                 'particle_hits': particle_count_per_esi,
                 'esi_id': oil_mass_by_esi.keys(),
-                'region': region_by_esi.values()
             },
             index=np.arange(len(cs))
         )

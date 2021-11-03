@@ -45,14 +45,14 @@ def main(
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='Calculate drift hazard')
+    parser = argparse.ArgumentParser(description='Calculate spill hazard')
     parser.add_argument('results_dir', type=Path)
     parser.add_argument('esi_path', type=Path)
     parser.add_argument('out_dir', type=Path)
     args = parser.parse_args()
 
-    logging.info('Calculating drift hazard')
-    logging.info(f'- Drift results read from {args.results_dir.resolve()}')
+    logging.info('Calculating spill hazard')
+    logging.info(f'- Spill results read from {args.results_dir.resolve()}')
     logging.info(f'- ESI data read from {args.esi_path.resolve()}')
     logging.info(f'- Writing output to {args.out_dir.resolve()}')
 

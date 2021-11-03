@@ -1,5 +1,6 @@
 # Container for spill result simulations
 import datetime
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Union
@@ -10,6 +11,8 @@ import xarray as xr
 
 from . import utils
 from .esi import ESI
+
+warnings.filterwarnings('ignore', message='.*Geometry is in a geographic CRS.*')
 
 
 class SpillResult:
@@ -113,7 +116,6 @@ class SpillResult:
 
         oil_mass_by_esi = defaultdict(float)
         particles_by_esi = defaultdict(int)
-        length_of_esi = defaultdict(str)
         for mass, id in zip(oil_mass, esi_ids):
             if id == '':
                 continue
@@ -121,8 +123,6 @@ class SpillResult:
             oil_mass_by_esi[id] += mass
             # Count all particles that landed in each ESI segment
             particles_by_esi[id] += 1
-            # Add length of ESI segment
-            length_of_esi[id] = esi.gdf[esi.gdf.esi_id == id]
 
         # From Sepp-Neves (2016):
         # "Cs is the concentration index, defined as the ensemble mean concentration
@@ -138,14 +138,17 @@ class SpillResult:
         ensemble_mean_mass = oil_mass / particle_count_per_esi
         cs = ensemble_mean_mass / oil_mass.max()
 
-        # Noramlize Cs by length of ESI segment
-        length_of_esi = np.fromiter(length_of_esi.values())
-        cs = cs / length_of_esi
+        # Normalize Cs by length of ESI segment
+        # Units of length not provided in data. Since it is is a normalizing factor, the units
+        # are not important, but this does limit interpretability.
+        esi_indexed = esi.gdf.set_index('esi_id')
+        esi_segment_length = esi_indexed.loc[particles_by_esi.keys()].length
+        cs = cs / esi_segment_length
 
         df = pd.DataFrame(
             {
                 'oil_mass': oil_mass_by_esi.values(),
-                'cs': cs,
+                'cs': cs.values,
                 'pb': pb,
                 'particle_hits': particle_count_per_esi,
                 'esi_id': oil_mass_by_esi.keys(),

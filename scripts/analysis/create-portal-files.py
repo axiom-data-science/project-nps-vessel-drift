@@ -18,13 +18,13 @@ def esi_id_to_region(esi_id: str) -> str:
     """Given esi_id, return the region name."""
     regions = {
         'aleutians': 'Aleutians',
-        'bristolbay': 'Bristol Bay', 
-        'cookinlet': 'Cook Inlet', 
+        'bristolbay': 'Bristol Bay',
+        'cookinlet': 'Cook Inlet',
         'kodiak': 'Kodiak',
-        'northslope': 'North Slope', 
-        'nwarctic': 'Northwest Arctic', 
-        'pwsound': 'Prince William Sound', 
-        'se': 'Southeast', 
+        'northslope': 'North Slope',
+        'nwarctic': 'Northwest Arctic',
+        'pwsound': 'Prince William Sound',
+        'se': 'Southeast',
         'w': 'Western'
     }
     return regions[esi_id.split('-')[0]]
@@ -83,7 +83,7 @@ def process_monthly_file(monthly_file: Path, esi: ESI) -> gpd.GeoDataFrame:
         tmp['vessel_type'] = vessel_type
         # I guess Oikos or the front end requires date to be formatted this way
         tmp['date_utc'] = date.strftime('%Y-%m-%dT00:00:00')
-        tmp['region'] = [esi_id_to_region(esi_id) for esi_id in esi.gdf.esi_id]
+        tmp['region'] = [esi_id_to_region(esi_id) for esi_id in tmp.index]
         tmp = tmp.reset_index()
         columns = [
             'date_utc',
@@ -111,8 +111,8 @@ def process_monthly_file(monthly_file: Path, esi: ESI) -> gpd.GeoDataFrame:
     return pd.concat(weighted_vessel_data.values())
 
 
-def main(monthly_file_dir: Path, esi_path: Path, output_dir: Path):
-    """Create a combined file of hazard and risk for use in portal."""
+def main(monthly_file_dir: Path, esi_path: Path, output_dir: Path, geojson: bool = False):
+    """Create combined files of hazard and risk for use in portal."""
     # Load ESI, but use cleaned up values for ESI (max value as int)
     esi = ESI(esi_path)
     esi.gdf['esi'] = [clean_esi_string(esi_str) for esi_str in esi.gdf.esi]
@@ -134,13 +134,27 @@ def main(monthly_file_dir: Path, esi_path: Path, output_dir: Path):
     combined.geometry = simplified_geometry
     logging.info(f'Size of combined {combined.memory_usage(deep=True).sum() / 1024 / 1024} MB')
 
-    out_path = output_dir / 'combined-hazard-risk-portal.geojson'
-    logging.info(f'Saving combined data to {out_path}')
-    combined.to_file(out_path, driver='GeoJSON')
-    # exhausts memory
+    if geojson:
+        out_path = output_dir / 'combined-hazard-risk-portal.geojson'
+        logging.info(f'Saving combined data to {out_path}')
+        combined.to_file(out_path, driver='GeoJSON')
     out_path = output_dir / 'combined-hazard-risk-portal.parquet'
     logging.info(f'Saving combined data to {out_path}')
     combined.to_parquet(out_path)
+
+    # Now save files for each region
+    regions = combined.region.unique()
+    for region in regions:
+        region_df = combined.query(f'region=="{region}"')
+
+        if geojson or region == 'western':
+            out_path = output_dir / f'combined-hazard-risk-portal_{region}.geojson'
+            logging.info(f'Saving combined data for {region} to {out_path}')
+            combined.to_file(out_path, driver='GeoJSON')
+        region_name = region.lower().replace(' ', '-')
+        out_path = output_dir / f'combined-hazard-risk-portal_{region_name}.parquet'
+        logging.info(f'Saving combined data for {region} to {out_path}')
+        region_df.to_parquet(out_path)
 
 
 if __name__ == '__main__':

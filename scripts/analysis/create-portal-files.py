@@ -67,14 +67,14 @@ def process_monthly_file(monthly_file: Path, esi: ESI) -> gpd.GeoDataFrame:
     for vessel_type in vessel_types:
         df1 = (weighted_data
             .reset_index()
-            .query('vessel_type=="{vessel_type}"')
+            .query(f'vessel_type=="{vessel_type}"')
             .set_index('esi_id'))
 
         df2 = esi.gdf.set_index('esi_id')
         df2.sort_index(inplace=True)
 
         tmp = (df2.join(
-                df1.query('vessel_type=="{vessel_type}"')
+                df1.query(f'vessel_type=="{vessel_type}"')
             )
             .fillna(0)
             .drop(columns=['length', 'vessel_type'])
@@ -138,7 +138,7 @@ def main(monthly_file_dir: Path, esi_path: Path, output_dir: Path, geojson: bool
         out_path = output_dir / 'combined-hazard-risk-portal.geojson'
         logging.info(f'Saving combined data to {out_path}')
         combined.to_file(out_path, driver='GeoJSON')
-    out_path = output_dir / 'combined-hazard-risk-portal.parquet'
+    out_path = output_dir / 'combined-hazard-risk-portal_all.parquet'
     logging.info(f'Saving combined data to {out_path}')
     combined.to_parquet(out_path)
 

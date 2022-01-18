@@ -8,7 +8,7 @@ from pathlib import Path
 from nco import Nco
 
 BASEDIR = '/mnt/vault/data/packrat/prod/hycom/orghycom/gofs31/glby/processed/2019/'
-OUTDIR = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/updated-files'
+OUTDIR = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/final-files'
 
 
 def extract_uv_surface_noworkie(basedir=BASEDIR, outdir='./', nworkers=10):
@@ -21,7 +21,7 @@ def extract_uv_surface_noworkie(basedir=BASEDIR, outdir='./', nworkers=10):
         '-d depth,0',
         '-d lon,160.0,220.0',
         '-d lat,45.0,75.0',
-        '-v water_u,water_v,water_temp,salinity',
+        '-v water_u,water_v,water_temp,salinity,sic,siu,siv',
         '-L 4'
     ]
     with Pool(processes=nworkers) as pool:
@@ -46,7 +46,7 @@ def _extract(fname, outdir):
     outdir = Path(outdir)
     outfile = outdir / fname.name
 
-# ugh
+# ugh - failing for some reason.
 #    subproc = subprocess.Popen(
 #        f'ncks -d lat,45.0,75.0 -d lon,160.0,220.0 -d depth,0 -v water_u,water_v {fname} {outfile}',
 #        stdout=subprocess.PIPE,
@@ -76,4 +76,20 @@ def extract_uv_surface(basedir=BASEDIR, outdir=OUTDIR, nworkers=10):
 
 
 if __name__ == '__main__':
-    extract_uv_surface()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'source_dir',
+        type=Path,
+        default=BASEDIR,
+        help='path to directory with hycom files'
+    )
+    parser.add_argument(
+        'output_dir',
+        type=Path,
+        default=OUTDIR,
+        help='path to directory to save output files'
+    )
+    args = parser.parse_args()
+    args.output_dir.mkdir(exist_ok=True)
+    extract_uv_surface(args.source_dir, args.output_dir)

@@ -10,7 +10,8 @@ import xarray as xr
 from rasterio import features
 
 # All analysis performed on the 25 km x 25 km grid in Alaska Albers Equal Area Projection
-REFERENCE_TIF = '/mnt/store/data/assets/nps-vessel-spills/ais-data/ais-data-2010-2013/processed/rescaled_25km_sum/rescale/ALLShips_20100101-20110101_total.tif'
+REFERENCE_TIF = '/mnt/store/data/assets/nps-vessel-spills/ais-data/ais-data-2015-2020/processed_25km/2019/rescale/all_20190101-20190201_total.tif'
+
 
 
 def get_stranded_flag(ds: xr.Dataset) -> int:
@@ -104,6 +105,9 @@ def main(results_dir: Path, output_dir: Path, stranding: bool=False, ref_tif_fpa
     """Given paths to sim results and output dir, create rasters of output drift simulations"""
     sim_files = list(results_dir.glob('*nc'))
     sim_files.sort()
+
+    if not output_dir.exists():
+        output_dir.mkdir()
 
     for sim_file in sim_files:
         out_fname = sim_file.name.replace(sim_file.suffix, '.tif')

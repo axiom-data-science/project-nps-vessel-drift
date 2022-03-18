@@ -57,6 +57,9 @@ class AlaskaDrift(OpenDriftSimulation):
         'y_wind',
         'eastward_sea_water_velocity',
         'northward_sea_water_velocity',
+        'eastward_sea_ice_velocity',
+        'northward_sea_ice_velocity',
+        'sea_ice_area_fraction',
         'land_binary_mask'
     ]
 
@@ -97,6 +100,20 @@ class AlaskaDrift(OpenDriftSimulation):
         )
 
     def update(self):
+        """Update ship position taking into account wind, currents, stokes, and ice."""
+        # Inspired by `advect_oil`
+        if hasattr(self.environment, 'sea_ice_area_fraction'):
+            ice_area_fraction = self.environment.sea_ice_area_fraction
+            # Above 70%–80% ice cover, the oil moves entirely with the ice.
+            k_ice = (ice_area_fraction - 0.3) / (0.8 - 0.3)
+            k_ice[ice_area_fraction < 0.3] = 0
+            k_ice[ice_area_fraction > 0.8] = 1
+
+            factor_stokes = (0.7 - ice_area_fraction) / 0.7
+            factor_stokes[ice_area_fraction > 0.7] = 0
+        else:
+            k_ice = 0
+            factor_stokes = 1
 
         # 1. update wind
         windspeed = np.sqrt(self.environment.x_wind**2 + self.environment.y_wind**2)
@@ -108,13 +125,24 @@ class AlaskaDrift(OpenDriftSimulation):
         winddir += self.elements.wind_offset
         wind_x = windspeed * np.cos(winddir)
         wind_y = windspeed * np.sin(winddir)
+
+        # Scale wind by ice factor
+        wind_x = wind_x * (1 - k_ice)
+        wind_y = wind_y * (1 - k_ice)
         self.update_positions(wind_x, wind_y)
 
         # 2. update with sea_water_velocity
-        self.update_positions(self.environment.eastward_sea_water_velocity,
-                              self.environment.northward_sea_water_velocity)
+        # This assumes x_sea_water_velocity and not eastward_sea_water_velocity...
+        #self.advect_ocean_current(factor=1 - k_ice)
+        self.update_positions(
+            self.environment.eastward_sea_water_velocity * (1 - k_ice),
+            self.environment.northward_sea_water_velocity * (1 - k_ice)
+        )
 
-        # 3. Deactivate elements that hit the land mask
+        # 3. Advect with ice
+        self.advect_with_sea_ice(factor=k_ice)
+
+        # Deactivate elements that hit the land mask
         self.deactivate_elements(
             self.environment.land_binary_mask == 1,
             reason='ship stranded'
@@ -166,9 +194,15 @@ def run_sims_for_date(run_config, tif_dir=TIF_DIR):
     tif_files.sort()
 
     base_fname = run_config.outfile
-
     for vessel_type in vessel_types:
-        tif_file = list(Path(tif_dir).glob(f'{vessel_type}_2019{month:02}01-*.tif'))[0]
+        try:
+            tif_file = list(Path(tif_dir).glob(f'{vessel_type}_2019{month:02}01-2019*.tif'))[0]
+        except IndexError:
+            if month == 12:
+                tif_file = list(Path(tif_dir).glob(f'{vessel_type}_2019{month:02}01-2020*.tif'))[0]
+            else:
+                raise IndexError(f"No AIS data found for {month}")
+
         logging.info(f'Starting simulation preparation for {tif_file=}')
 
         vessel_type = tif_file.name.split('.')[0].split('_')[0]
@@ -189,7 +223,17 @@ def run_sims_for_date(run_config, tif_dir=TIF_DIR):
                 number=len(lons),
                 radius=run_config.radius
             )
-        vessel_sim.set_config('general:use_auto_landmask', False)  # Disabling the automatic GSHHG landmask
+        # Disabling the automatic GSHHG landmask
+        vessel_sim.set_config('general:use_auto_landmask', False)
+
+        # Backup velocities
+        vessel_sim.set_config('environment:fallback:sea_ice_area_fraction', 0)
+        vessel_sim.set_config('environment:fallback:northward_sea_ice_velocity', 0)
+        vessel_sim.set_config('environment:fallback:eastward_sea_ice_velocity', 0)
+        vessel_sim.set_config('environment:fallback:northward_sea_water_velocity', 0)
+        vessel_sim.set_config('environment:fallback:eastward_sea_water_velocity', 0)
+        vessel_sim.set_config('environment:fallback:x_wind', 0)
+        vessel_sim.set_config('environment:fallback:y_wind', 0)
         vessel_sim.run(
             time_step=run_config.time_step,
             time_step_output=run_config.time_step_output,
@@ -208,15 +252,22 @@ def run_simulations(
     loglevel=logging.INFO
 ):
     # start date possible to launch drifter, limited by availability of HYCOM data
-    start_date = datetime.datetime(2019, 1, 17)
+    start_date = datetime.datetime(2019, 12, 5)
     # last date possible to launch drifter, limited by availability of NAM data
-    last_date = datetime.datetime(2019, 12, 10)
+    last_date = datetime.datetime(2019, 12, 18)
     date = start_date
     duration = datetime.timedelta(days=days)
 
-    # currents
-    hycom_file = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/hycom.nc'
-    hycom_reader = reader_netCDF_CF_generic.Reader(hycom_file)
+    # currents + ice
+    hycom_file = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/final-files/hycom.nc'
+    # Provide a name mapping to work with package methods:
+    name_map = {
+        'eastward_sea_water_velocity': 'x_sea_water_velocity',
+        'northward_sea_water_velocity': 'y_sea_water_velocity',
+        'siu': 'x_sea_ice_velocity',
+        'siv': 'y_sea_ice_velocity',
+    }
+    hycom_reader = reader_netCDF_CF_generic.Reader(hycom_file, standard_name_mapping=name_map)
 
     # winds
     fname = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/nam/regrid/nam.nc'

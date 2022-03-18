@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
-
 from vessel_drift_analysis.utils import get_stranded_flag_from_status
 
 
@@ -41,9 +40,12 @@ def main(indir, outdir):
 
     results_files = indir.glob('*.nc')
     for result_file in results_files:
-        logging.info(f'Extracting stranding locations from {result_file}')
-        out_file = save_stranded_locations(result_file, outdir)
-        logging.info(f'Extracted stranding locations saved to {out_file}')
+        try:
+            logging.info(f'Extracting stranding locations from {result_file}')
+            out_file = save_stranded_locations(result_file, outdir)
+            logging.info(f'Extracted stranding locations saved to {out_file}')
+        except:
+            logging.error(f'Problem extracting location from {result_file}')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,12 @@
+affine
+cartopy
+geopandas
+matplotlib
+nco
+netcdf4
+pandas
+pynco
+rasterio
+scipy
+sqlalchemy
+xarray

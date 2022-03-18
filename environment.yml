@@ -1,0 +1,15 @@
+name: nps-analysis
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - affine
+  - cartopy
+  - geopandas
+  - matplotlib
+  - netcdf4
+  - pandas
+  - rasterio
+  - scipy
+  - sqlalchemy
+  - xarray 

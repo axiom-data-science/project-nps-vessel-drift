@@ -54,7 +54,7 @@ def _extract(fname, outdir):
 #        shell=True
 #    )
 #    stdout, stderr = subproc.communicate()
-    os.system(f'ncks -d lat,45.0,75.0 -d lon,160.0,220.0 -d depth,0 -v water_u,water_v,water_temp,salinity {fname} {outfile}')
+    os.system(f'ncks -d lat,45.0,75.0 -d lon,160.0,220.0 -d depth,0 -v water_u,water_v,water_temp,salinity,sic,siu,siv {fname} {outfile}')
 
 
 def extract_uv_surface(basedir=BASEDIR, outdir=OUTDIR, nworkers=10):

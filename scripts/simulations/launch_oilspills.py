@@ -45,7 +45,7 @@ class SimulationConfig:
     duration: datetime.timedelta = datetime.timedelta(days=7)
     outfile: str = None
     loglevel: int = logging.INFO
-    grounding_dir: Path = Path('/mnt/store/data/assets/nps-vessel-spills/stranding-locations/satellite')
+    grounding_dir: Path = Path('/mnt/store/data/assets/nps-vessel-spills/sim-results/test-last/stranding-locations/')
 
 
 # Values drived from: https://apps.ecology.wa.gov/publications/documents/96250.pdf
@@ -141,20 +141,26 @@ def run_simulations(
     output_timestep=3600,
     vessel_types=VESSEL_TYPES,
     oil_configs=OIL_CONFIGS,
-    loglevel=logging.INFO
+    loglevel=logging.INFO,
+    grounding_dir=None,
+    start_date=None
 ):
     if type(vessel_types) is str:
         vessel_types = [vessel_types]
 
-    # start date possible to launch drifter, limited by availability of HYCOM data
-    start_date = datetime.datetime(2019, 1, 17)
-    # last date possible to launch drifter, limited by availability of NAM data
-    last_date = datetime.datetime(2019, 12, 10)
+    # handle specific test dates
+    if start_date is not None:
+        last_date = start_date + datetime.timedelta(days=1)
+    else:
+        # start date possible to launch drifter, limited by availability of HYCOM data
+        start_date = datetime.datetime(2019, 1, 8)
+        # last date possible to launch drifter, limited by availability of NAM data
+        last_date = datetime.datetime(2019, 12, 10)
     date = start_date
     duration = datetime.timedelta(days=days)
 
     # currents
-    hycom_file = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/updated-files/hycom.nc'
+    hycom_file = '/mnt/store/data/assets/nps-vessel-spills/forcing-files/hycom/final-files/hycom.nc'
     hycom_reader = reader_netCDF_CF_generic.Reader(hycom_file)
 
     # winds
@@ -184,7 +190,8 @@ def run_simulations(
                     output_timestep,
                     duration,
                     output_fname,
-                    loglevel
+                    loglevel,
+                    grounding_dir
                 )
                 run_sim(config, oil_configs, vessel_type)
 
@@ -202,6 +209,12 @@ def run_simulations(
 def main():
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-g',
+        '--grounding_dir',
+        type=Path,
+        help='Path to directory with grounding locations'
+    )
     parser.add_argument(
         '-n',
         '--number',
@@ -221,7 +234,19 @@ def main():
         type=str,
         help='vessel type ("cargo", "tanker", "passenger", "other")'
     )
+    parser.add_argument(
+        '-s',
+        '--start_date',
+        type=str,
+        help='Specify simulation start time (%Y-%m-%d)'
+    )
     args = parser.parse_args()
+
+    if args.start_date is not None:
+        start_date = datetime.datetime.strptime(args.start_date, '%Y-%m-%d')
+    else:
+        start_date = None
+
     run_simulations(
         days=7,
         number=args.number,
@@ -229,7 +254,9 @@ def main():
         timestep=900,
         output_timestep=86400,
         vessel_types=args.vessel_type,
-        loglevel=logging.INFO
+        loglevel=logging.INFO,
+        grounding_dir=args.grounding_dir,
+        start_date=start_date
     )
 
 

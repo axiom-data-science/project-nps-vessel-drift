@@ -5,7 +5,6 @@ from pathlib import Path
 
 import geopandas as gpd
 
-
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.INFO)
 
 
@@ -31,8 +30,10 @@ def normalize_by_grs(fpath: Path, output_dir: Path) -> gpd.GeoDataFrame:
 
 def main(input_dir: Path, output_dir: Path):
     """Write GRS normalized files from input_dir to output_dir."""
-    files = input_dir.glob('combined*_all.parquet')
+    files = input_dir.glob('combined*.parquet')
     for f in files:
+        if 'all' in str(f):
+            continue
         logging.info(f'Processing {f}')
         normalize_by_grs(f, output_dir)
 

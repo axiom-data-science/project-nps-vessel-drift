@@ -5,17 +5,17 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from test_esi import ESI_PATH
-
 from vessel_drift_analysis import spill_results
 from vessel_drift_analysis.esi import ESI
+
+from test_esi import ESI_PATH
 
 SAMPLE_DIR = Path('/mnt/store/data/assets/nps-vessel-spills/sim-results/satellite-sims/oil-spill-results/')
 SAMPLE_FILE = SAMPLE_DIR / 'oilspill_tanker_2019-12-05.nc'
 NSAMPLE_FILES = 188
 NPARTICLES = 12532
 NSTRANDED = 11202
-NESI_SEGMENTS = 2034
+NESI_SEGMENTS = 2027
 VESSEL_TYPE = 'tanker'
 
 
@@ -46,6 +46,7 @@ class TestSpillResults:
         assert len(oil_mass) == NPARTICLES
 
     def test_calc_concentration_index(self):
+        breakpoint()
         concentration_index = self.spill_result._calc_concentration_index(self.esi)
         assert len(concentration_index) == NESI_SEGMENTS
         assert concentration_index.oil_mass.min() >= 0.0
@@ -54,6 +55,7 @@ class TestSpillResults:
         assert concentration_index.cs.max() <= 1.0
 
     def test_init(self):
+        breakpoint()
         assert len(self.spill_result.data) == NESI_SEGMENTS
 
         assert self.spill_result.data.oil_mass.min() >= 0.0

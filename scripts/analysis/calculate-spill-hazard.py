@@ -4,9 +4,9 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-
 from vessel_drift_analysis.esi import ESI
-from vessel_drift_analysis.spill_results import SpillResultsSet, get_vessel_type
+from vessel_drift_analysis.spill_results import (SpillResultsSet,
+                                                 get_vessel_type)
 
 logging.basicConfig(format='%(process)d - %(levelname)s: %(message)s', level=logging.INFO)
 

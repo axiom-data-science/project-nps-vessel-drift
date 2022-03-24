@@ -252,9 +252,9 @@ def run_simulations(
     loglevel=logging.INFO
 ):
     # start date possible to launch drifter, limited by availability of HYCOM data
-    start_date = datetime.datetime(2019, 12, 5)
-    # last date possible to launch drifter, limited by availability of NAM data
-    last_date = datetime.datetime(2019, 12, 18)
+    start_date = datetime.datetime(2019, 1, 8)
+    # last date possible to launch drifter, limited by availability of NAM data (2019-12-17)
+    last_date = datetime.datetime(2019, 12, 10)
     date = start_date
     duration = datetime.timedelta(days=days)
 

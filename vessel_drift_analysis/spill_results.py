@@ -132,18 +132,20 @@ class SpillResult:
         # So, we will use the ESI segment length in the shape files to normalize this.
         oil_mass = np.fromiter(oil_mass_by_esi.values(), dtype=float)
 
-        # Pb_s - Probability spill hit each ESI segment
-        particle_count_per_esi = np.fromiter(particles_by_esi.values(), dtype=int)
-        pb = particle_count_per_esi / particle_count_per_esi.sum()
-        ensemble_mean_mass = oil_mass / particle_count_per_esi
-        cs = ensemble_mean_mass / oil_mass.max()
-
-        # Normalize Cs by length of ESI segment
+        # Oil mass is not a concentration, so we use the length of the ESI segment to convert it
+        # to Mass / Length that it becomes a concentration.
         # Units of length not provided in data. Since it is is a normalizing factor, the units
         # are not important, but this does limit interpretability.
         esi_indexed = esi.gdf.set_index('esi_id')
         esi_segment_length = esi_indexed.loc[particles_by_esi.keys()].length
-        cs = cs / esi_segment_length
+        oil_concentration = oil_mass / esi_segment_length
+
+        particle_count_per_esi = np.fromiter(particles_by_esi.values(), dtype=int)
+        ensemble_mean_concentration = oil_concentration / particle_count_per_esi
+        cs = ensemble_mean_concentration / oil_concentration.max()
+
+        # Pb_s - Probability spill hit each ESI segment
+        pb = particle_count_per_esi / particle_count_per_esi.sum()
 
         df = pd.DataFrame(
             {

@@ -2,31 +2,18 @@
 
 ## Summary
 
-The goal of the porject was to assess risk to the Bering and Chukchi Seas coast from vessels that had gone adrift,
-run aground, breached, and then spilt oil on the coast.
+This repo is an archive of code, simulation results, and notebooks for the [Bering Sea Drift and Spill Vessel](https://spillanddrift.srv.axds.co) project to estimate the risk of oil spill to Alaskan shores from grounded vessels.
 
-## Project Links
+The goal of the project was to better understand the risks associated with vessel traffic in the Bering and Chukchi Seas to the Alaskan shoreline. This included estimating the probability of vessels drifting and running aground, estimating the likelihood of a grounded vessel spilling oil, and risk posed to coastal areas from oil spilled from such a vessel.
 
-- [Jira](https://axds.atlassian.net/jira/software/projects/NPSVESSL/boards/41)
-- [Confluence] :sweat_smile:
+The project incorporated data from an industry database of 3000+ vessel incidents from Alaskan waters, a NOAA incident database, and a State of Alaska incident database to develop realistic parameters for the likelihood and duration of vessel drift events into drift simulation models.
 
-## Data
+## Repo Content
 
-### Data on Gluster
-
-The project working directoy is on `/mnt/store/data/assets/nps-vessel-spills/` which contains everything related to project,
-but is too big to be included in the repo.
-
-#### Regional risk files
-
-Parquet files containing the oil spill hazard,
-
-#### Normalized regional risk files
-
-Same as the regional risk files, but the risk and hazard are normalized by the maximum value within the region.
+### Data
 
 
-## Code (src)
+### Code (src)
 
 The scripts for processing the data for simulations, running, the simulations, and analyzing the simulations are contained
 in the pip installable `vessel-drift-analysis` package.

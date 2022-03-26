@@ -12,6 +12,10 @@ The project incorporated data from an industry database of 3000+ vessel incident
 
 ### Data
 
+The results from the analysis are contained in two folders:
+
+- `risk-files` contains Parquet files containing the oil spill hazard, oil spill risk, breadh hazard, organized Environmental Sensitivity Index (ESI) segment, vessel type, and month.
+- `region-normalized-risk-files` contains the same fields as the `risk-files` folder, but normalized by the maximum value within the region.
 
 ### Code (src)
 

@@ -1,5 +1,7 @@
 # NPS - Vessel Drift Analysis
 
+[![DOI](https://zenodo.org/badge/474192615.svg)](https://zenodo.org/badge/latestdoi/474192615)
+
 ## Summary
 
 This repo is an archive of code, simulation results, and notebooks for the [Bering Sea Drift and Spill Vessel](https://spillanddrift.srv.axds.co) project to estimate the risk of oil spill to Alaskan shores from grounded vessels.

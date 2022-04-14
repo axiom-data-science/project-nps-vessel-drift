@@ -1,0 +1,11 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Lopez
+    given-names: Jesse
+    orcid: https://orcid.org/0000-0002-6450-6209
+  - family-names: Golden
+    given-names: Trevor
+    orcid: https://orcid.org/0000-0003-4138-9289
+title: axiom-data-science/project-nps-vessel-drift.
+date-released: 2017-12-18

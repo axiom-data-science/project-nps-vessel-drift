@@ -1,13 +1,31 @@
 {
+    "description": "<p>A brief update to the readme.</p>", 
+    "license": "other-open", 
+    "title": "axiom-data-science/project-nps-vessel-drift: v1.0.1", 
+    "version": "v1.0.1", 
+    "upload_type": "software", 
+    "publication_date": "2022-04-14", 
     "creators": [
         {
-            "affiliation": "Axiom Data Science",
-            "name": "Lopez, Jesse"
+            "affiliation": "@axiom-data-science", 
+            "name": "Jesse Lopez"
+        }, 
+        {
+            "affiliation": "Axiom Data Science", 
+            "name": "Ian Gill"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "scheme": "url", 
+            "identifier": "https://github.com/axiom-data-science/project-nps-vessel-drift/tree/v1.0.1", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "scheme": "doi", 
+            "identifier": "10.5281/zenodo.6413226", 
+            "relation": "isVersionOf"
         }
     ]
-
-    "title": "Bering Sea Drift and Spill Vessel",
-
-    "keywords": ["oil spill", "Alaska", "Chukchi Sea", "ocean traffic"]
-
 }

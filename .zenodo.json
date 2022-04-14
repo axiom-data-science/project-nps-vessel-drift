@@ -7,17 +7,13 @@
         {
             "affiliation": "@axiom-data-science", 
             "name": "Jesse Lopez"
-        }, 
-        {
-            "affiliation": "Axiom Data Science", 
-            "name": "Ian Gill"
         }
     ], 
     "access_right": "open", 
     "related_identifiers": [
         {
             "scheme": "url", 
-            "identifier": "https://github.com/axiom-data-science/project-nps-vessel-drift/tree/v1.0.1", 
+            "identifier": "https://github.com/axiom-data-science/project-nps-vessel-drift/", 
             "relation": "isSupplementTo"
         }, 
         {

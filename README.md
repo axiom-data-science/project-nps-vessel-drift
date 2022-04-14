@@ -10,6 +10,8 @@ The goal of the project was to better understand the risks associated with vesse
 
 The project incorporated data from an industry database of 3000+ vessel incidents from Alaskan waters, a NOAA incident database, and a State of Alaska incident database to develop realistic parameters for the likelihood and duration of vessel drift events into drift simulation models.
 
+Last updated: April 2022.
+
 ## Repo Content
 
 ### Data
